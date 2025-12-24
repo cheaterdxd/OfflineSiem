@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { scanService, AlertEvent } from "../services/scan";
+import { LogFileSelector } from "../components/LogFileSelector";
+import { LogFileInfo } from "../services/logService";
 import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { EventsTab } from "../components/EventsTab";
@@ -11,6 +13,7 @@ type TabType = "events" | "alerts";
 type LogType = "cloudtrail" | "flatjson";
 
 export const DashboardPage: React.FC = () => {
+    const [selectedLogFile, setSelectedLogFile] = useState<LogFileInfo | null>(null);
     const [logFile, setLogFile] = useState<string | null>(null);
     const [events, setEvents] = useState<any[]>([]);
     const [alerts, setAlerts] = useState<AlertEvent[]>([]);
@@ -18,6 +21,44 @@ export const DashboardPage: React.FC = () => {
     const [logType, setLogType] = useState<LogType>("cloudtrail");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    async function handleSelectLogFile(logFileInfo: LogFileInfo | null) {
+        if (!logFileInfo) {
+            setSelectedLogFile(null);
+            setLogFile(null);
+            setEvents([]);
+            setAlerts([]);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+            setSelectedLogFile(logFileInfo);
+            setLogFile(logFileInfo.path);
+
+            // Load all events with log type
+            const allEvents = await invoke<any[]>("load_log_events", {
+                logPath: logFileInfo.path,
+                logType: logType
+            });
+            setEvents(allEvents);
+
+            // Save log context to localStorage for Rule Testing
+            localStorage.setItem("currentLogPath", logFileInfo.path);
+            localStorage.setItem("currentLogType", logType);
+
+            // Auto-scan with active rules
+            const scanResult = await scanService.scanLogs(logFileInfo.path, logType);
+            setAlerts(scanResult.alerts);
+
+            setLoading(false);
+            setActiveTab("events");
+        } catch (err: any) {
+            setError(err.toString());
+            setLoading(false);
+        }
+    }
 
     async function handleImportLog() {
         try {
@@ -81,10 +122,18 @@ export const DashboardPage: React.FC = () => {
                         </select>
                     </div>
                     <Button onClick={handleImportLog} disabled={loading} style={{ marginTop: "1.25rem" }}>
-                        {loading ? "Loading..." : "📁 Import Log File"}
+                        {loading ? "Loading..." : "Browse External File"}
                     </Button>
                 </div>
             </div>
+
+            {/* Log File Selector */}
+            <Card>
+                <LogFileSelector
+                    onSelectFile={handleSelectLogFile}
+                    selectedFile={selectedLogFile}
+                />
+            </Card>
 
             {/* Stats */}
             {logFile && (
@@ -165,8 +214,7 @@ export const DashboardPage: React.FC = () => {
             ) : (
                 <Card>
                     <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-                        <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📁</div>
-                        <h3 style={{ margin: "0 0 0.5rem 0" }}>No Log File Loaded</h3>
+                        <h3 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}>No Log File Loaded</h3>
                         <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
                             Import a JSON log file to begin analysis
                         </p>

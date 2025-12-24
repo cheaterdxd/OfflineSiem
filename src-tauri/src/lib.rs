@@ -3,11 +3,12 @@
 //! This module registers all Tauri commands and initializes the application.
 
 mod db_engine;
+mod log_manager;
 mod models;
 mod rule_manager;
 mod test_rule;
 
-use models::{AlertEvent, QueryResult, RuleYaml, ScanResponse, SiemError};
+use models::{AlertEvent, LogFileInfo, QueryResult, RuleYaml, ScanResponse, SiemError};
 use std::time::Instant;
 
 // ============================================================================
@@ -203,6 +204,31 @@ async fn get_field_suggestions(
 }
 
 // ============================================================================
+// Log File Management Commands
+// ============================================================================
+
+/// List all JSON log files in the monitored logs folder.
+#[tauri::command]
+async fn list_log_files(app_handle: tauri::AppHandle) -> Result<Vec<LogFileInfo>, SiemError> {
+    log_manager::list_log_files(&app_handle)
+}
+
+/// Import an external log file by copying it to the monitored folder.
+#[tauri::command]
+async fn import_log_file(
+    app_handle: tauri::AppHandle,
+    source_path: String,
+) -> Result<LogFileInfo, SiemError> {
+    log_manager::import_log_file(&app_handle, &source_path)
+}
+
+/// Delete a log file from the monitored folder.
+#[tauri::command]
+async fn delete_log_file(app_handle: tauri::AppHandle, filename: String) -> Result<(), SiemError> {
+    log_manager::delete_log_file(&app_handle, &filename)
+}
+
+// ============================================================================
 // Tauri Application Builder
 // ============================================================================
 
@@ -227,6 +253,10 @@ pub fn run() {
             test_rule,
             validate_condition,
             get_field_suggestions,
+            // Log File Management
+            list_log_files,
+            import_log_file,
+            delete_log_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

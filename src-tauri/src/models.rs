@@ -150,6 +150,25 @@ impl serde::Serialize for SiemError {
 }
 
 // ============================================================================
+// Log File Management Structures
+// ============================================================================
+
+/// Information about a log file in the monitored logs folder.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LogFileInfo {
+    /// Filename without path
+    pub filename: String,
+    /// Full path to the file
+    pub path: String,
+    /// File size in bytes
+    pub size_bytes: u64,
+    /// Last modified timestamp (ISO 8601)
+    pub modified: String,
+    /// Estimated number of events (if available)
+    pub event_count: Option<usize>,
+}
+
+// ============================================================================
 // Scan Request/Response Structures
 // ============================================================================
 

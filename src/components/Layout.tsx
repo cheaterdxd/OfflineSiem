@@ -8,8 +8,8 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigate }) => {
     const menuItems = [
-        { id: "dashboard", label: "Dashboard", icon: "📊" },
-        { id: "rules", label: "Rules Manager", icon: "🛡️" },
+        { id: "dashboard", label: "Dashboard" },
+        { id: "rules", label: "Rules Manager" },
     ];
 
     return (
@@ -19,10 +19,15 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
                 width: "250px",
                 backgroundColor: "var(--bg-card)",
                 borderRight: "1px solid var(--border-color)",
-                padding: "1rem"
+                padding: "1.5rem 1rem",
+                boxShadow: "var(--shadow-sm)"
             }}>
                 <div style={{ marginBottom: "2rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <div style={{ width: 32, height: 32, background: "var(--primary)", borderRadius: 8 }}></div>
+                    <img
+                        src="/vcs_logo.svg"
+                        alt="VCS Logo"
+                        style={{ width: 32, height: 32 }}
+                    />
                     <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Offline SIEM</h2>
                 </div>
 
@@ -32,22 +37,29 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
                             key={item.id}
                             onClick={() => onNavigate(item.id)}
                             style={{
-                                background: currentView === item.id ? "var(--bg-input)" : "transparent",
-                                border: "none",
+                                background: currentView === item.id ? "var(--primary-light)" : "transparent",
+                                border: currentView === item.id ? "1px solid var(--primary)" : "1px solid transparent",
                                 color: currentView === item.id ? "var(--primary)" : "var(--text-secondary)",
                                 padding: "0.75rem 1rem",
                                 borderRadius: "var(--radius-md)",
                                 textAlign: "left",
                                 cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "0.75rem",
                                 fontSize: "0.95rem",
-                                fontWeight: currentView === item.id ? 600 : 400,
-                                transition: "all 0.2s"
+                                fontWeight: currentView === item.id ? 600 : 500,
+                                transition: "all 0.15s",
+                                width: "100%"
+                            }}
+                            onMouseEnter={(e) => {
+                                if (currentView !== item.id) {
+                                    e.currentTarget.style.backgroundColor = "var(--bg-hover)";
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (currentView !== item.id) {
+                                    e.currentTarget.style.backgroundColor = "transparent";
+                                }
                             }}
                         >
-                            <span>{item.icon}</span>
                             {item.label}
                         </button>
                     ))}
@@ -55,7 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
             </aside>
 
             {/* Main Content */}
-            <main style={{ flex: 1, overflow: "auto", padding: "2rem" }}>
+            <main style={{ flex: 1, overflow: "auto", padding: "2rem", backgroundColor: "var(--bg-secondary)" }}>
                 {children}
             </main>
         </div>
