@@ -7,24 +7,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::models::{RuleYaml, SiemError};
-use tauri::Manager;
 
 /// Get the directory path where rules are stored.
-/// Creates the directory if it doesn't exist.
+/// Uses custom directory from config if set, otherwise uses default app data dir.
 pub fn get_rules_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, SiemError> {
-    let app_data_dir = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| SiemError::FileIO(format!("Cannot get app data dir: {}", e)))?;
-
-    let rules_dir = app_data_dir.join("rules");
-
-    if !rules_dir.exists() {
-        fs::create_dir_all(&rules_dir)
-            .map_err(|e| SiemError::FileIO(format!("Cannot create rules dir: {}", e)))?;
-    }
-
-    Ok(rules_dir)
+    // Use config module to get the effective rules directory
+    crate::config::get_rules_directory(app_handle)
 }
 
 /// Save a rule to a YAML file.

@@ -2,6 +2,7 @@
 //!
 //! This module registers all Tauri commands and initializes the application.
 
+mod config;
 mod db_engine;
 mod log_manager;
 mod models;
@@ -229,6 +230,65 @@ async fn delete_log_file(app_handle: tauri::AppHandle, filename: String) -> Resu
 }
 
 // ============================================================================
+// Configuration Management Commands
+// ============================================================================
+
+/// Load application configuration.
+#[tauri::command]
+async fn get_config(app_handle: tauri::AppHandle) -> Result<config::AppConfig, SiemError> {
+    config::load_config(&app_handle)
+}
+
+/// Save application configuration.
+#[tauri::command]
+async fn save_config(
+    app_handle: tauri::AppHandle,
+    config_data: config::AppConfig,
+) -> Result<(), SiemError> {
+    config::save_config(&app_handle, &config_data)
+}
+
+/// Set custom rules directory.
+#[tauri::command]
+async fn set_rules_directory(
+    app_handle: tauri::AppHandle,
+    directory: Option<String>,
+) -> Result<config::AppConfig, SiemError> {
+    config::set_rules_directory(&app_handle, directory)
+}
+
+/// Set default logs directory.
+#[tauri::command]
+async fn set_logs_directory(
+    app_handle: tauri::AppHandle,
+    directory: Option<String>,
+) -> Result<config::AppConfig, SiemError> {
+    config::set_logs_directory(&app_handle, directory)
+}
+
+/// Add a log file to recent files list.
+#[tauri::command]
+async fn add_recent_log_file(
+    app_handle: tauri::AppHandle,
+    file_path: String,
+) -> Result<config::AppConfig, SiemError> {
+    config::add_recent_log_file(&app_handle, file_path)
+}
+
+/// Clear recent log files.
+#[tauri::command]
+async fn clear_recent_files(app_handle: tauri::AppHandle) -> Result<config::AppConfig, SiemError> {
+    config::clear_recent_files(&app_handle)
+}
+
+/// Get the current rules directory path.
+#[tauri::command]
+async fn get_rules_directory(app_handle: tauri::AppHandle) -> Result<String, SiemError> {
+    let path = config::get_rules_directory(&app_handle)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+// ============================================================================
 // Tauri Application Builder
 // ============================================================================
 
@@ -257,6 +317,14 @@ pub fn run() {
             list_log_files,
             import_log_file,
             delete_log_file,
+            // Configuration Management
+            get_config,
+            save_config,
+            set_rules_directory,
+            set_logs_directory,
+            add_recent_log_file,
+            clear_recent_files,
+            get_rules_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
