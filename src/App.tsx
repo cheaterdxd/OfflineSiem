@@ -9,16 +9,19 @@ function App() {
   const [currentView, setCurrentView] = useState("dashboard");
 
   const renderContent = () => {
-    switch (currentView) {
-      case "dashboard":
-        return <DashboardPage />;
-      case "rules":
-        return <RulesPage />;
-      case "settings":
-        return <SettingsPage />;
-      default:
-        return <DashboardPage />;
-    }
+    return (
+      <>
+        <div style={{ display: currentView === "dashboard" ? "block" : "none" }}>
+          <DashboardPage />
+        </div>
+        <div style={{ display: currentView === "rules" ? "block" : "none" }}>
+          <RulesPage />
+        </div>
+        <div style={{ display: currentView === "settings" ? "block" : "none" }}>
+          <SettingsPage />
+        </div>
+      </>
+    );
   };
 
   return (

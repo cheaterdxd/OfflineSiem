@@ -38,4 +38,26 @@ export const ruleService = {
     deleteRule: async (ruleId: string): Promise<void> => {
         return await invoke("delete_rule", { ruleId });
     },
+
+    exportRule: async (ruleId: string, destPath: string): Promise<void> => {
+        return await invoke("export_rule", { ruleId, destPath });
+    },
+
+    exportAllRules: async (destPath: string): Promise<number> => {
+        return await invoke("export_all_rules", { destPath });
+    },
+
+    importRule: async (sourcePath: string, overwrite: boolean): Promise<RuleYaml> => {
+        return await invoke("import_rule", { sourcePath, overwrite });
+    },
+
+    importRulesZip: async (zipPath: string, overwrite: boolean): Promise<ImportSummary> => {
+        return await invoke("import_rules_zip", { zipPath, overwrite });
+    },
 };
+
+export interface ImportSummary {
+    success_count: number;
+    skipped: string[];
+    errors: string[];
+}

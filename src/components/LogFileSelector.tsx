@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { logService, LogFileInfo } from "../services/logService";
 import { Button } from "./Button";
+import { Tooltip } from "./Tooltip";
 
 interface LogFileSelectorProps {
     onSelectFile: (logFile: LogFileInfo) => void;
@@ -111,12 +112,16 @@ export const LogFileSelector: React.FC<LogFileSelectorProps> = ({
                     Log Files
                 </h3>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <Button onClick={loadLogFiles} disabled={loading}>
-                        Refresh
-                    </Button>
-                    <Button onClick={handleImportFile} disabled={loading}>
-                        Import Log File
-                    </Button>
+                    <Tooltip content="Refresh the list of imported log files" position="left">
+                        <Button onClick={loadLogFiles} disabled={loading}>
+                            Refresh
+                        </Button>
+                    </Tooltip>
+                    <Tooltip content="Import and save log file to library for repeated use" position="left">
+                        <Button onClick={handleImportFile} disabled={loading}>
+                            Import to Library
+                        </Button>
+                    </Tooltip>
                 </div>
             </div>
 
@@ -149,7 +154,7 @@ export const LogFileSelector: React.FC<LogFileSelectorProps> = ({
                 }}>
                     <p style={{ margin: 0 }}>No log files found.</p>
                     <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.9rem" }}>
-                        Click "Import Log File" to add JSON log files.
+                        Click "Import to Library" to add JSON log files.
                     </p>
                 </div>
             )}

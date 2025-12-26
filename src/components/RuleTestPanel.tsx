@@ -30,7 +30,6 @@ export const RuleTestPanel: React.FC<RuleTestPanelProps> = ({
     condition,
     logPath,
     logType,
-    onConditionChange
 }) => {
     const [testResult, setTestResult] = useState<TestRuleResult | null>(null);
     const [validation, setValidation] = useState<ValidationResult | null>(null);

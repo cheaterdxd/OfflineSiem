@@ -8,6 +8,7 @@ import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { EventsTab } from "../components/EventsTab";
 import { AlertsTab } from "../components/AlertsTab";
+import { Tooltip } from "../components/Tooltip";
 
 type TabType = "events" | "alerts";
 type LogType = "cloudtrail" | "flatjson";
@@ -20,6 +21,7 @@ export const DashboardPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>("events");
     const [logType, setLogType] = useState<LogType>("cloudtrail");
     const [loading, setLoading] = useState(false);
+    const [isRescanning, setIsRescanning] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     async function handleSelectLogFile(logFileInfo: LogFileInfo | null) {
@@ -99,8 +101,28 @@ export const DashboardPage: React.FC = () => {
         }
     }
 
-    function handleViewAlertEvents(alert: AlertEvent) {
+    function handleViewAlertEvents() {
         setActiveTab("events");
+    }
+
+    async function handleRescan() {
+        if (!logFile) {
+            return;
+        }
+
+        try {
+            setIsRescanning(true);
+            setError(null);
+
+            // Re-scan with active rules
+            const scanResult = await scanService.scanLogs(logFile, logType);
+            setAlerts(scanResult.alerts);
+
+            setIsRescanning(false);
+        } catch (err: any) {
+            setError(err.toString());
+            setIsRescanning(false);
+        }
     }
 
     return (
@@ -121,9 +143,11 @@ export const DashboardPage: React.FC = () => {
                             <option value="flatjson">Flat JSON</option>
                         </select>
                     </div>
-                    <Button onClick={handleImportLog} disabled={loading} style={{ marginTop: "1.25rem" }}>
-                        {loading ? "Loading..." : "Browse External File"}
-                    </Button>
+                    <Tooltip content="Load a log file temporarily without saving to library" position="left">
+                        <Button onClick={handleImportLog} disabled={loading} style={{ marginTop: "1.25rem" }}>
+                            {loading ? "Loading..." : "Quick Load"}
+                        </Button>
+                    </Tooltip>
                 </div>
             </div>
 
@@ -154,6 +178,29 @@ export const DashboardPage: React.FC = () => {
                         <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Alerts</div>
                         <div style={{ fontSize: "1.5rem", fontWeight: "bold", marginTop: "0.25rem", color: alerts.length > 0 ? "var(--danger)" : "var(--success)" }}>
                             {alerts.length}
+                        </div>
+                    </Card>
+                    <Card
+                        style={{
+                            cursor: logFile && !isRescanning ? "pointer" : "default",
+                            backgroundColor: logFile && !isRescanning ? "var(--primary)15" : "var(--bg-card)",
+                            borderLeft: logFile && !isRescanning ? "4px solid var(--primary)" : "none",
+                            transition: "all 0.2s"
+                        }}
+                        onClick={handleRescan}
+                    >
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Actions</div>
+                        <div style={{
+                            fontSize: "1rem",
+                            fontWeight: 500,
+                            marginTop: "0.5rem",
+                            color: logFile && !isRescanning ? "var(--primary)" : "var(--text-secondary)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.5rem"
+                        }}>
+                            <span style={{ fontSize: "1.2rem" }}>🔄</span>
+                            {isRescanning ? "Scanning..." : "Re-scan Logs"}
                         </div>
                     </Card>
                 </div>
@@ -215,10 +262,9 @@ export const DashboardPage: React.FC = () => {
                 <Card>
                     <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
                         <h3 style={{ margin: "0 0 0.5rem 0", color: "var(--text-primary)" }}>No Log File Loaded</h3>
-                        <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-                            Import a JSON log file to begin analysis
+                        <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                            Select a file from the library above, or use <strong>Quick Load</strong> to analyze an external file
                         </p>
-                        <Button onClick={handleImportLog}>Import Log File</Button>
                     </div>
                 </Card>
             )}

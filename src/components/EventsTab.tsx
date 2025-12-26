@@ -58,13 +58,14 @@ export const EventsTab: React.FC<EventsTabProps> = ({ events, alerts }) => {
     };
 
     // Recursively render all fields with copy buttons
-    const renderAllFields = (obj: any, parentPath: string = "", level: number = 0): JSX.Element[] => {
+    const renderAllFields = (obj: any, parentPath: string = "", level: number = 0): React.ReactElement[] => {
         if (!obj || typeof obj !== 'object') return [];
 
-        const elements: JSX.Element[] = [];
+        const elements: React.ReactElement[] = [];
         const indent = level * 20;
 
-        Object.entries(obj).forEach(([key, value]) => {
+        Object.entries(obj).forEach(([key, val]) => {
+            const value: any = val; // Cast to any to avoid strict type checking issues
             const fieldPath = parentPath ? `${parentPath}.${key}` : key;
             const isObject = value && typeof value === 'object' && !Array.isArray(value);
             const isArray = Array.isArray(value);
@@ -140,12 +141,12 @@ export const EventsTab: React.FC<EventsTabProps> = ({ events, alerts }) => {
                     </div>
 
                     {/* Render nested fields if expanded */}
-                    {isExpanded && isObject && renderAllFields(value, fieldPath, level + 1)}
+                    {isExpanded && isObject && <>{renderAllFields(value, fieldPath, level + 1)}</>}
                     {isExpanded && isArray && value.map((item: any, idx: number) => (
                         <div key={`${fieldPath}[${idx}]`} style={{ marginLeft: `${(level + 1) * 20}px`, marginTop: "0.25rem" }}>
                             <span style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}>[{idx}]:</span>
                             {typeof item === 'object' ? (
-                                renderAllFields(item, `${fieldPath}[${idx}]`, level + 1)
+                                <>{renderAllFields(item, `${fieldPath}[${idx}]`, level + 1)}</>
                             ) : (
                                 <span style={{ marginLeft: "0.5rem", fontSize: "0.85rem" }}>{String(item)}</span>
                             )}
@@ -226,18 +227,31 @@ export const EventsTab: React.FC<EventsTabProps> = ({ events, alerts }) => {
                                     <button
                                         onClick={() => setExpandedEvent(expandedEvent === idx ? null : idx)}
                                         style={{
-                                            background: "var(--primary)",
-                                            color: "white",
-                                            border: "none",
-                                            padding: "0.5rem 1rem",
+                                            background: "transparent",
+                                            color: "var(--text-secondary)",
+                                            border: "1px solid var(--border-color)",
+                                            padding: "0.5rem 0.75rem",
                                             borderRadius: "var(--radius-sm)",
                                             cursor: "pointer",
-                                            fontSize: "0.85rem",
+                                            fontSize: "1rem",
                                             fontWeight: 500,
-                                            whiteSpace: "nowrap"
+                                            whiteSpace: "nowrap",
+                                            transition: "all 0.2s",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.25rem"
                                         }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.backgroundColor = "var(--bg-secondary)";
+                                            e.currentTarget.style.borderColor = "var(--text-secondary)";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.backgroundColor = "transparent";
+                                            e.currentTarget.style.borderColor = "var(--border-color)";
+                                        }}
+                                        title={expandedEvent === idx ? "Collapse details" : "Expand details"}
                                     >
-                                        {expandedEvent === idx ? "Collapse" : "Expand"}
+                                        {expandedEvent === idx ? "▼" : "▶"}
                                     </button>
 
                                     {/* Alert Badge */}

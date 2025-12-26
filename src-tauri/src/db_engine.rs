@@ -190,16 +190,23 @@ pub fn validate_log_file(conn: &Connection, log_path: &str) -> Result<bool, Siem
 
 /// Helper function to check if a JSON event matches a SQL-like condition.
 /// Supports:
-/// - Operators: =, CONTAINS
+/// - Operators: =, !=, <>, IN, NOT IN, CONTAINS, NOT CONTAINS
 /// - Logic: AND, OR
 /// - Nested fields: userIdentity.type
 ///
 /// Examples:
 /// - eventName = 'AssumeRole'
+/// - eventName != 'ConsoleLogin'
+/// - requestParameters.url <> 'https://hdbank.vn'
+/// - eventName IN ('AssumeRole', 'CreateAccessKey', 'DeleteBucket')
+/// - awsRegion NOT IN ('us-east-1', 'us-west-2')
 /// - eventName CONTAINS 'Assume'
+/// - eventName NOT CONTAINS 'Console'
 /// - eventName = 'AssumeRole' AND userIdentity.type = 'AWSService'
 /// - eventName = 'AssumeRole' OR eventName = 'CreateAccessKey'
 /// - eventName CONTAINS 'Assume' AND awsRegion = 'ap-southeast-1'
+/// - eventName = 'CreateOpenIDConnectProvider' AND requestParameters.url != 'https://hdbank.vn'
+/// - userIdentity.type IN ('Root', 'IAMUser') AND eventName NOT IN ('ConsoleLogin', 'GetConsoleScreenshot')
 pub fn matches_condition(event: &serde_json::Value, condition: &str) -> bool {
     let condition = condition.trim();
 
@@ -251,6 +258,59 @@ fn split_by_keyword<'a>(condition: &'a str, keyword: &str) -> Vec<&'a str> {
 fn matches_single_condition(event: &serde_json::Value, condition: &str) -> bool {
     let condition = condition.trim();
 
+    // Check for NOT IN operator (must check before IN to avoid false match)
+    if condition.to_uppercase().contains(" NOT IN ") {
+        if let Some(not_in_pos) = condition.to_uppercase().find(" NOT IN ") {
+            let field = condition[..not_in_pos].trim();
+            let value_part = condition[not_in_pos + 8..].trim(); // " NOT IN " is 8 chars
+
+            // Parse list: (value1, value2, value3)
+            if let Some(values) = parse_in_list(value_part) {
+                if let Some(actual_value) = get_field_value(event, field) {
+                    // Check if actual value is NOT in the list
+                    return !values.iter().any(|v| v == &actual_value);
+                }
+                return true; // If field doesn't exist, it's not in the list
+            }
+        }
+    }
+
+    // Check for IN operator
+    if condition.to_uppercase().contains(" IN ") {
+        if let Some(in_pos) = condition.to_uppercase().find(" IN ") {
+            let field = condition[..in_pos].trim();
+            let value_part = condition[in_pos + 4..].trim(); // " IN " is 4 chars
+
+            // Parse list: (value1, value2, value3)
+            if let Some(values) = parse_in_list(value_part) {
+                if let Some(actual_value) = get_field_value(event, field) {
+                    // Check if actual value is in the list
+                    return values.iter().any(|v| v == &actual_value);
+                }
+                return false; // If field doesn't exist, it's not in the list
+            }
+        }
+    }
+
+    // Check for NOT CONTAINS operator
+    if condition.to_uppercase().contains(" NOT CONTAINS ") {
+        if let Some(not_contains_pos) = condition.to_uppercase().find(" NOT CONTAINS ") {
+            let field = condition[..not_contains_pos].trim();
+            let value_part = condition[not_contains_pos + 14..].trim(); // " NOT CONTAINS " is 14 chars
+
+            // Remove quotes from value
+            let search_value = value_part.trim_matches('\'').trim_matches('"');
+
+            // Get field value and check if it does NOT contain the search value
+            if let Some(actual_value) = get_field_value(event, field) {
+                return !actual_value
+                    .to_lowercase()
+                    .contains(&search_value.to_lowercase());
+            }
+            return true; // If field doesn't exist, it doesn't contain the value
+        }
+    }
+
     // Check for CONTAINS operator
     if condition.to_uppercase().contains(" CONTAINS ") {
         if let Some(contains_pos) = condition.to_uppercase().find(" CONTAINS ") {
@@ -267,6 +327,40 @@ fn matches_single_condition(event: &serde_json::Value, condition: &str) -> bool 
                     .contains(&search_value.to_lowercase());
             }
             return false;
+        }
+    }
+
+    // Check for != operator (must check before = to avoid false match)
+    if condition.contains("!=") {
+        if let Some(neq_pos) = condition.find("!=") {
+            let field = condition[..neq_pos].trim();
+            let value_part = condition[neq_pos + 2..].trim();
+
+            // Remove quotes from value
+            let expected_value = value_part.trim_matches('\'').trim_matches('"');
+
+            // Get field value from event
+            if let Some(actual_value) = get_field_value(event, field) {
+                return actual_value != expected_value;
+            }
+            return true; // If field doesn't exist, it's not equal to the value
+        }
+    }
+
+    // Check for <> operator (SQL not equal)
+    if condition.contains("<>") {
+        if let Some(neq_pos) = condition.find("<>") {
+            let field = condition[..neq_pos].trim();
+            let value_part = condition[neq_pos + 2..].trim();
+
+            // Remove quotes from value
+            let expected_value = value_part.trim_matches('\'').trim_matches('"');
+
+            // Get field value from event
+            if let Some(actual_value) = get_field_value(event, field) {
+                return actual_value != expected_value;
+            }
+            return true; // If field doesn't exist, it's not equal to the value
         }
     }
 
@@ -303,6 +397,33 @@ fn get_field_value(event: &serde_json::Value, field_path: &str) -> Option<String
         serde_json::Value::Number(n) => Some(n.to_string()),
         serde_json::Value::Bool(b) => Some(b.to_string()),
         _ => None,
+    }
+}
+
+/// Parse an IN clause list: ('value1', 'value2', 'value3')
+/// Returns a vector of values without quotes
+fn parse_in_list(list_str: &str) -> Option<Vec<String>> {
+    let list_str = list_str.trim();
+
+    // Check if it starts with ( and ends with )
+    if !list_str.starts_with('(') || !list_str.ends_with(')') {
+        return None;
+    }
+
+    // Remove parentheses
+    let inner = &list_str[1..list_str.len() - 1];
+
+    // Split by comma and clean up each value
+    let values: Vec<String> = inner
+        .split(',')
+        .map(|s| s.trim().trim_matches('\'').trim_matches('"').to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if values.is_empty() {
+        None
+    } else {
+        Some(values)
     }
 }
 

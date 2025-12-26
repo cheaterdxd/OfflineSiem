@@ -40,6 +40,45 @@ async fn delete_rule(app_handle: tauri::AppHandle, rule_id: String) -> Result<()
     rule_manager::delete_rule(&app_handle, &rule_id)
 }
 
+/// Export a single rule to a YAML file.
+#[tauri::command]
+async fn export_rule(
+    app_handle: tauri::AppHandle,
+    rule_id: String,
+    dest_path: String,
+) -> Result<(), SiemError> {
+    rule_manager::export_rule(&app_handle, &rule_id, &dest_path)
+}
+
+/// Export all rules to a ZIP archive.
+#[tauri::command]
+async fn export_all_rules(
+    app_handle: tauri::AppHandle,
+    dest_path: String,
+) -> Result<usize, SiemError> {
+    rule_manager::export_all_rules(&app_handle, &dest_path)
+}
+
+/// Import a single rule from a YAML file.
+#[tauri::command]
+async fn import_rule(
+    app_handle: tauri::AppHandle,
+    source_path: String,
+    overwrite: bool,
+) -> Result<RuleYaml, SiemError> {
+    rule_manager::import_rule(&app_handle, &source_path, overwrite)
+}
+
+/// Import multiple rules from a ZIP archive.
+#[tauri::command]
+async fn import_rules_zip(
+    app_handle: tauri::AppHandle,
+    zip_path: String,
+    overwrite: bool,
+) -> Result<rule_manager::ImportSummary, SiemError> {
+    rule_manager::import_rules_zip(&app_handle, &zip_path, overwrite)
+}
+
 // ============================================================================
 // Scanning Commands
 // ============================================================================
@@ -303,6 +342,10 @@ pub fn run() {
             get_rule,
             save_rule, // Kept original save_rule
             delete_rule,
+            export_rule,
+            export_all_rules,
+            import_rule,
+            import_rules_zip,
             // Scanning
             scan_logs,
             // Ad-hoc queries

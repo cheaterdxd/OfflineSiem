@@ -48,7 +48,7 @@ export const ScanPage: React.FC = () => {
             }
 
             // Step 2: Run scan
-            const response = await scanService.scanLogs(logPath);
+            const response = await scanService.scanLogs(logPath, 'cloudtrail');
             setAlerts(response.alerts);
             setStats({
                 rules: response.rules_evaluated,

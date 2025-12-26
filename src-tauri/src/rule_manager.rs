@@ -110,6 +110,165 @@ pub fn list_active_rules(app_handle: &tauri::AppHandle) -> Result<Vec<RuleYaml>,
         .collect())
 }
 
+/// Export a single rule to a YAML file.
+pub fn export_rule(
+    app_handle: &tauri::AppHandle,
+    rule_id: &str,
+    dest_path: &str,
+) -> Result<(), SiemError> {
+    let rule = get_rule(app_handle, rule_id)?;
+
+    let yaml_content = serde_yaml::to_string(&rule)
+        .map_err(|e| SiemError::Serialization(format!("Cannot serialize rule: {}", e)))?;
+
+    fs::write(dest_path, yaml_content)
+        .map_err(|e| SiemError::FileIO(format!("Cannot write export file: {}", e)))?;
+
+    Ok(())
+}
+
+/// Export all rules to a ZIP archive.
+pub fn export_all_rules(
+    app_handle: &tauri::AppHandle,
+    dest_path: &str,
+) -> Result<usize, SiemError> {
+    use std::io::Write;
+    use zip::write::FileOptions;
+
+    let rules = list_rules(app_handle)?;
+    let file = fs::File::create(dest_path)
+        .map_err(|e| SiemError::FileIO(format!("Cannot create ZIP file: {}", e)))?;
+
+    let mut zip = zip::ZipWriter::new(file);
+    let options = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    for rule in &rules {
+        let filename = format!("{}.yaml", rule.id);
+        let yaml_content = serde_yaml::to_string(rule)
+            .map_err(|e| SiemError::Serialization(format!("Cannot serialize rule: {}", e)))?;
+
+        zip.start_file(filename, options)
+            .map_err(|e| SiemError::FileIO(format!("Cannot add file to ZIP: {}", e)))?;
+
+        zip.write_all(yaml_content.as_bytes())
+            .map_err(|e| SiemError::FileIO(format!("Cannot write to ZIP: {}", e)))?;
+    }
+
+    zip.finish()
+        .map_err(|e| SiemError::FileIO(format!("Cannot finalize ZIP: {}", e)))?;
+
+    Ok(rules.len())
+}
+
+/// Import a single rule from a YAML file.
+pub fn import_rule(
+    app_handle: &tauri::AppHandle,
+    source_path: &str,
+    overwrite: bool,
+) -> Result<RuleYaml, SiemError> {
+    let content = fs::read_to_string(source_path)
+        .map_err(|e| SiemError::FileIO(format!("Cannot read import file: {}", e)))?;
+
+    let mut rule: RuleYaml = serde_yaml::from_str(&content)
+        .map_err(|e| SiemError::Serialization(format!("Cannot parse YAML: {}", e)))?;
+
+    // Check if rule already exists
+    let rules_dir = get_rules_dir(app_handle)?;
+    let existing_path = rules_dir.join(format!("{}.yaml", rule.id));
+
+    if existing_path.exists() && !overwrite {
+        return Err(SiemError::Rule(format!(
+            "Rule with ID {} already exists. Use overwrite=true to replace it.",
+            rule.id
+        )));
+    }
+
+    // Save the rule
+    save_rule(app_handle, rule)
+}
+
+/// Import summary result
+#[derive(serde::Serialize)]
+pub struct ImportSummary {
+    pub success_count: usize,
+    pub skipped: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+/// Import multiple rules from a ZIP archive.
+pub fn import_rules_zip(
+    app_handle: &tauri::AppHandle,
+    zip_path: &str,
+    overwrite: bool,
+) -> Result<ImportSummary, SiemError> {
+    use std::io::Read;
+
+    let file = fs::File::open(zip_path)
+        .map_err(|e| SiemError::FileIO(format!("Cannot open ZIP file: {}", e)))?;
+
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| SiemError::FileIO(format!("Cannot read ZIP archive: {}", e)))?;
+
+    let mut summary = ImportSummary {
+        success_count: 0,
+        skipped: Vec::new(),
+        errors: Vec::new(),
+    };
+
+    for i in 0..archive.len() {
+        let mut file = archive
+            .by_index(i)
+            .map_err(|e| SiemError::FileIO(format!("Cannot read ZIP entry: {}", e)))?;
+
+        // Skip directories and non-YAML files
+        if file.is_dir() {
+            continue;
+        }
+
+        let filename = file.name().to_string();
+        if !filename.ends_with(".yaml") && !filename.ends_with(".yml") {
+            continue;
+        }
+
+        // Read file content
+        let mut content = String::new();
+        if let Err(e) = file.read_to_string(&mut content) {
+            summary.errors.push(format!("{}: {}", filename, e));
+            continue;
+        }
+
+        // Parse rule
+        let rule: RuleYaml = match serde_yaml::from_str(&content) {
+            Ok(r) => r,
+            Err(e) => {
+                summary
+                    .errors
+                    .push(format!("{}: Invalid YAML - {}", filename, e));
+                continue;
+            }
+        };
+
+        // Check if rule already exists
+        let rules_dir = get_rules_dir(app_handle)?;
+        let existing_path = rules_dir.join(format!("{}.yaml", rule.id));
+
+        if existing_path.exists() && !overwrite {
+            summary.skipped.push(rule.id.clone());
+            continue;
+        }
+
+        // Save rule
+        match save_rule(app_handle, rule) {
+            Ok(_) => summary.success_count += 1,
+            Err(e) => summary.errors.push(format!("{}: {}", filename, e)),
+        }
+    }
+
+    Ok(summary)
+}
+
 /// Helper function to load a rule from a file path.
 fn load_rule_from_path(path: &PathBuf) -> Result<RuleYaml, SiemError> {
     let content = fs::read_to_string(path)

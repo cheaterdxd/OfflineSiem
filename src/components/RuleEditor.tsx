@@ -211,6 +211,16 @@ export const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel, 
                             ))}
                         </div>
                     </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-color)" }}>
+                        <Button type="submit" style={{ flex: 1 }}>
+                            {rule ? "Update Rule" : "Create Rule"}
+                        </Button>
+                        <Button type="button" variant="secondary" onClick={onCancel} style={{ flex: 1 }}>
+                            Cancel
+                        </Button>
+                    </div>
                 </form>
             </Card>
 

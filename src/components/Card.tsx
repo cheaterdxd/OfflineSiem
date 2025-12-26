@@ -7,7 +7,7 @@ interface CardProps {
     className?: string;
     actions?: React.ReactNode;
     style?: React.CSSProperties;
-    onClick?: () => void;
+    onClick?: (e?: React.MouseEvent) => void;
 }
 
 export const Card: React.FC<CardProps> = ({ children, title, className = "", actions, style, onClick }) => {
