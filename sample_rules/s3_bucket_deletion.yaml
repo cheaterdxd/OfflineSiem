@@ -1,0 +1,17 @@
+id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+title: "Sensitive S3 Bucket Deletion"
+description: "Detects deletion of S3 buckets by non-service accounts, which could indicate a data destruction attack or accidental deletion of critical data. Production buckets are especially monitored."
+author: "Data Protection Team"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - s3
+  - data-destruction
+  - critical-asset
+  - compliance
+detection:
+  severity: "critical"
+  condition: "eventName IN ('DeleteBucket', 'DeleteBucketPolicy', 'DeleteBucketWebsite') AND userIdentity.type != 'AWSService' AND requestParameters.bucketName LIKE '%prod%'"
+output:
+  alert_title: "CRITICAL: Production bucket {{requestParameters.bucketName}} deleted by {{userIdentity.userName}}"

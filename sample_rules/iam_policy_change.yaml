@@ -1,0 +1,17 @@
+id: "d4e5f6a7-b8c9-0123-def1-234567890123"
+title: "IAM Policy Modification"
+description: "Detects changes to IAM policies which could indicate privilege escalation attempts or unauthorized access modifications. All IAM policy changes should be reviewed."
+author: "Identity & Access Team"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - iam
+  - privilege-escalation
+  - policy-change
+  - security
+detection:
+  severity: "medium"
+  condition: "eventName IN ('PutUserPolicy', 'PutGroupPolicy', 'PutRolePolicy', 'AttachUserPolicy', 'AttachGroupPolicy', 'AttachRolePolicy')"
+output:
+  alert_title: "IAM policy modified: {{eventName}} by {{userIdentity.userName}}"

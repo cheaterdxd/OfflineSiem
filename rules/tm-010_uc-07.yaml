@@ -1,0 +1,17 @@
+id: ""
+title: "K8s Exec into Pod by Service Account"
+description: "Detects a Service Account using 'kubectl exec' to enter another Pod. This is a common lateral movement technique where a compromised Pod is used to access other Pods."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - lateral-movement
+  - exec
+detection:
+  severity: "high"
+  condition: "verb = 'create' AND objectRef.subresource = 'exec' AND userIdentity.username CONTAINS 'system:serviceaccount'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Suspicious Exec by Service Account"

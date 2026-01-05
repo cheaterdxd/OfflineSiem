@@ -1,0 +1,17 @@
+id: ""
+title: "AWS CloudShell Environment Created"
+description: "Detects the creation of an AWS CloudShell environment. CloudShell provides a pre-authenticated CLI that can be used to bypass local network restrictions and exfiltrate data."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - defense-evasion
+  - cloudshell
+detection:
+  severity: "high"
+  condition: "eventName = 'CreateEnvironment'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "CloudShell Environment Started"

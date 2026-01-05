@@ -1,0 +1,17 @@
+id: ""
+title: "Malicious Lambda Function Created"
+description: "Detects the creation or update of Lambda function code. Attackers may deploy serverless functions to access databases or S3 and send data to external HTTP endpoints."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - exfiltration
+  - lambda
+detection:
+  severity: "high"
+  condition: "eventName IN ('CreateFunction', 'UpdateFunctionCode')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Lambda Function Modified/Created"

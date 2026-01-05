@@ -1,0 +1,16 @@
+id: ""
+title: "AWS Detect add High privilege Policy to IAM User"
+description: "This rule detects the attachment of high-privilege policies to IAM users, which could indicate potential privilege escalation attempts or unauthorized access modifications. All IAM user policy attachments should be reviewed."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - iam
+detection:
+  severity: "high"
+  condition: "eventName = 'AttachUserPolicy' AND userIdentity.type = 'IAMUser' AND requestParameters.policyArn CONTAINS 'Admin'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "AWS IAMuser add High privilege Policy to IAM User"

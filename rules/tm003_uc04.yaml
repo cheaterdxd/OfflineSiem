@@ -1,0 +1,16 @@
+id: ""
+title: "AWS IAMuser create new user on AWSCLI"
+description: "This rule detects the creation of new IAM users using the AWS CLI, which could indicate potential privilege escalation attempts or unauthorized access modifications. All IAM user creations should be reviewed."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - iam
+detection:
+  severity: "high"
+  condition: "eventName = 'CreateUser' AND userIdentity.type = 'IAMUser' AND userAgent CONTAINS 'awscli'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "AWS IAMuser create new user on AWSCLI"

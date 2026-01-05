@@ -1,0 +1,17 @@
+id: ""
+title: "Potential EC2 Proxy Exfiltration"
+description: "Detects usage of EC2 instances that might be acting as proxies for exfiltration. CloudTrail visibility is limited, but high volume network traffic or connection to known bad domains (like drive.google.com) from EC2 is suspicious. (Requires VPC Flow Logs / DNS Logs)."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - exfiltration
+  - network
+detection:
+  severity: "high"
+  condition: "eventName = 'GuardDutyFinding' AND service.action.actionType = 'DNS_REQUEST'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Suspicious DNS Request from EC2"

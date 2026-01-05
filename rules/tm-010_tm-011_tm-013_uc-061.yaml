@@ -1,0 +1,17 @@
+id: ""
+title: "Sensitive System File Access"
+description: "Detects access to sensitive system files (SSH keys, crontab, kubelet PKI, kubeconfig) which indicates an attempt to steal credentials or establish persistence."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - linux
+  - credential-theft
+  - persistence
+detection:
+  severity: "critical"
+  condition: "file_path IN ('/etc/crontab', '/etc/shadow', '/etc/passwd') OR file_path CONTAINS '/.ssh/authorized_keys' OR file_path CONTAINS '/etc/cron.d/' OR file_path CONTAINS '/var/lib/kubelet/pki/' OR file_path CONTAINS '/.kube/config'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Sensitive System File Access Detected"

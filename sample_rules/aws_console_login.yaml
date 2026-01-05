@@ -1,0 +1,17 @@
+id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+title: "AWS Console Login Success"
+description: "Detects successful AWS console login events for monitoring and audit purposes. This rule helps track who is accessing the AWS console."
+author: "Cloud Security Team"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - cloudtrail
+  - authentication
+  - console
+  - monitoring
+detection:
+  severity: "info"
+  condition: "eventName = 'ConsoleLogin' AND responseElements.ConsoleLogin = 'Success'"
+output:
+  alert_title: "Console login by {{userIdentity.userName}} from {{sourceIPAddress}}"

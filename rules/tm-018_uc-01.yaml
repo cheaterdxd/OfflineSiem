@@ -1,0 +1,17 @@
+id: ""
+title: "K8s Anonymous Access to Kubelet API"
+description: "Detects anonymous access to the Kubelet API (port 10250), which allows unauthenticated users to execute commands or retrieve pod data. This indicates a misconfigured Kubelet (--anonymous-auth=true)."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - initial-access
+  - kubelet
+detection:
+  severity: "critical"
+  condition: "userIdentity.username = 'system:anonymous' AND (objectRef.path CONTAINS '/run/' OR objectRef.path CONTAINS '/exec/' OR objectRef.path CONTAINS '/pods' OR objectRef.path CONTAINS '/stats/summary')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Anonymous Access to Kubelet API"

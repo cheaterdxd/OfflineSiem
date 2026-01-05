@@ -1,0 +1,21 @@
+id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+title: "AWS API Brute Force Attempt"
+description: "Detects multiple failed API calls from the same source IP within a 5-minute window, indicating potential credential stuffing or brute force attack. This is a critical security indicator."
+author: "SOC Team"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - brute-force
+  - api
+  - authentication
+  - threat-detection
+detection:
+  severity: "high"
+  condition: "errorCode = 'AccessDenied' OR errorCode = 'UnauthorizedOperation'"
+  aggregation:
+    enabled: true
+    window: "5m"
+    threshold: "> 10"
+output:
+  alert_title: "Brute force attack detected from {{sourceIPAddress}}"

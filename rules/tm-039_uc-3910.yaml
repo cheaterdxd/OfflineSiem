@@ -1,0 +1,17 @@
+id: ""
+title: "DNS Exfiltration Detected"
+description: "Detects potential data exfiltration via DNS queries (e.g., long TXT records). This technique is used to bypass firewall restrictions by encoding data in DNS requests."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - exfiltration
+  - dns
+detection:
+  severity: "high"
+  condition: "eventName = 'GuardDutyFinding' AND service.action.actionType = 'DNS_REQUEST'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "DNS Exfiltration Attempt"

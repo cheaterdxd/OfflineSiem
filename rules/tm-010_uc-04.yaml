@@ -1,0 +1,17 @@
+id: ""
+title: "K8s RBAC Permissions Enumeration"
+description: "Detects attempts to enumerate user permissions using 'kubectl auth can-i' or SelfSubjectAccessReview API calls. Attackers use this to determine what actions their compromised credentials can perform."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - discovery
+  - rbac
+detection:
+  severity: "high"
+  condition: "verb = 'create' AND (objectRef.resource = 'selfsubjectaccessreviews' OR objectRef.resource = 'selfsubjectrulesreviews') AND userAgent NOT CONTAINS 'dashboard' AND userAgent NOT CONTAINS 'kube-proxy'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "RBAC Enumeration Detected"

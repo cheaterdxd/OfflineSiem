@@ -1,0 +1,17 @@
+id: "e5f6a7b8-c9d0-1234-ef12-345678901234"
+title: "Root Account Usage"
+description: "Detects any activity performed by the AWS root account. Root account usage should be extremely rare and always investigated. Best practice is to use IAM users instead."
+author: "Security Operations Team"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - root-account
+  - best-practice
+  - compliance
+  - critical
+detection:
+  severity: "high"
+  condition: "userIdentity.type = 'Root'"
+output:
+  alert_title: "ROOT ACCOUNT USAGE: {{eventName}} from {{sourceIPAddress}}"

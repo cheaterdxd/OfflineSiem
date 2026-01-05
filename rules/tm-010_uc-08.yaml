@@ -1,0 +1,17 @@
+id: ""
+title: "K8s Pod with HostNetwork Created"
+description: "Detects creation of a Pod with 'hostNetwork: true'. This allows the Pod to bypass network policies, access the Kubelet API (localhost:10250), and potentially access cloud metadata services."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - defense-evasion
+  - host-network
+detection:
+  severity: "high"
+  condition: "verb = 'create' AND objectRef.resource = 'pods' AND requestObject CONTAINS 'hostNetwork: true'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "HostNetwork Pod Created"

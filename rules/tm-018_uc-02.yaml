@@ -1,0 +1,17 @@
+id: ""
+title: "Kubelet API Traffic from Public IP"
+description: "Detects traffic to Kubelet API port 10250 from public IPs or non-ControlPlane IPs. This suggests direct exposure of Kubelet API to the internet or unauthorized networks."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - network
+  - kubelet
+detection:
+  severity: "high"
+  condition: "dstPort = 10250 AND srcIP NOT IN ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Suspicious Kubelet API Traffic"

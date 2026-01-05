@@ -1,0 +1,16 @@
+id: ""
+title: "AWS Detect Create Policy With Wide Action"
+description: "This rule detects the creation of policies with wide actions, which could indicate potential privilege escalation attempts or unauthorized access modifications. All IAM user policy attachments should be reviewed."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - iam
+detection:
+  severity: "high"
+  condition: "eventName = 'CreatePolicy' AND userIdentity.type = 'IAMUser' AND requestParameters.policyDocument CONTAINS '\"Action\": \"*\"'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "AWS IAMuser create policy with wide action"

@@ -1,0 +1,17 @@
+id: ""
+title: "K8s Privileged Pod Creation by Service Account"
+description: "Detects a Service Account creating a new Pod with 'privileged: true'. Attackers can use privileged pods to escape containers and gain access to the host node."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - privilege-escalation
+  - pod
+detection:
+  severity: "critical"
+  condition: "(userAgent CONTAINS 'system:serviceaccount' OR userAgent CONTAINS 'curl' OR userAgent CONTAINS 'python' OR userAgent CONTAINS 'wget' OR userAgent CONTAINS 'kubectl') AND (userAgent NOT CONTAINS 'kube-controller' AND userAgent NOT CONTAINS 'kube-scheduler' AND userAgent NOT CONTAINS 'kube-proxy' AND userAgent NOT CONTAINS 'coredns') AND (verb = 'create' OR verb = 'update' OR verb = 'patch') AND objectRef.resource IN ('pods', 'deployments', 'daemonsets') AND requestObject CONTAINS \"privileged\": true"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Privileged Pod Created by Service Account"

@@ -1,0 +1,17 @@
+id: ""
+title: "SSM Session Manager Port Forwarding"
+description: "Detects the start of an SSM Session using port forwarding or interactive shell. Attackers use this to access private instances without SSH ports open."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - lateral-movement
+  - ssm
+detection:
+  severity: "high"
+  condition: "eventName = 'StartSession' AND requestParameters.documentName IN ('AWS-StartPortForwardingSession', 'AWS-StartSSMSession')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "SSM Session Started"

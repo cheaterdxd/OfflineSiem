@@ -1,0 +1,205 @@
+{
+    "eventVersion": "1.11",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDATTCVRZIH3C5M5NN7B",
+        "arn": "arn:aws:iam::247140043279:user/dev-hacker",
+        "accountId": "247140043279",
+        "accessKeyId": "AKIATTCVRZIHUAT2IYSD",
+        "userName": "dev-hacker"
+    },
+    "eventTime": "2025-12-18T07:34:23Z",
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "RunInstances",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "44.220.89.171",
+    "userAgent": "aws-cli/2.32.17 md/awscrt#0.29.1 ua/2.1 os/linux#6.14.0-1014-aws md/arch#x86_64 lang/python#3.13.11 md/pyimpl#CPython m/Z,E,n,b cfg/retry-mode#standard md/installer#exe md/distrib#ubuntu.24 md/prompt#off md/command#ec2.run-instances",
+    "requestParameters": {
+        "instancesSet": {
+            "items": [
+                {
+                    "imageId": "ami-0156001f0548e90b1",
+                    "minCount": 1,
+                    "maxCount": 1,
+                    "keyName": "hacker-key"
+                }
+            ]
+        },
+        "groupSet": {
+            "items": [
+                {
+                    "groupId": "sg-0077dd95c00a80e89"
+                }
+            ]
+        },
+        "instanceType": "t3.micro",
+        "blockDeviceMapping": {},
+        "monitoring": {
+            "enabled": false
+        },
+        "disableApiTermination": false,
+        "disableApiStop": false,
+        "clientToken": "01c6162a-4a77-49f6-8e29-865cdb84e8e7",
+        "iamInstanceProfile": {
+            "name": "Ops-Admin-Profile"
+        }
+    },
+    "responseElements": {
+        "requestId": "a3579f88-2db0-4881-a05d-7f7e82272fb4",
+        "reservationId": "r-07c780745eff1fa63",
+        "ownerId": "247140043279",
+        "groupSet": {},
+        "instancesSet": {
+            "items": [
+                {
+                    "instanceId": "i-0bf4bcc3209f4ae0d",
+                    "imageId": "ami-0156001f0548e90b1",
+                    "currentInstanceBootMode": "legacy-bios",
+                    "instanceState": {
+                        "code": 0,
+                        "name": "pending"
+                    },
+                    "privateDnsName": "ip-172-31-17-58.ec2.internal",
+                    "keyName": "hacker-key",
+                    "operator": {
+                        "managed": false
+                    },
+                    "amiLaunchIndex": 0,
+                    "productCodes": {},
+                    "instanceType": "t3.micro",
+                    "launchTime": 1766043262000,
+                    "placement": {
+                        "availabilityZone": "us-east-1b",
+                        "availabilityZoneId": "use1-az4",
+                        "tenancy": "default"
+                    },
+                    "monitoring": {
+                        "state": "disabled"
+                    },
+                    "subnetId": "subnet-0fd18e7dbb4f8ffad",
+                    "vpcId": "vpc-0050fb7c37c325444",
+                    "privateIpAddress": "172.31.17.58",
+                    "stateReason": {
+                        "code": "pending",
+                        "message": "pending"
+                    },
+                    "architecture": "x86_64",
+                    "rootDeviceType": "ebs",
+                    "rootDeviceName": "/dev/xvda",
+                    "blockDeviceMapping": {},
+                    "virtualizationType": "hvm",
+                    "hypervisor": "xen",
+                    "clientToken": "01c6162a-4a77-49f6-8e29-865cdb84e8e7",
+                    "groupSet": {
+                        "items": [
+                            {
+                                "groupId": "sg-0077dd95c00a80e89",
+                                "groupName": "Hacker-Open-Door"
+                            }
+                        ]
+                    },
+                    "sourceDestCheck": true,
+                    "networkInterfaceSet": {
+                        "items": [
+                            {
+                                "networkInterfaceId": "eni-04afe5c319b78158b",
+                                "subnetId": "subnet-0fd18e7dbb4f8ffad",
+                                "vpcId": "vpc-0050fb7c37c325444",
+                                "ownerId": "247140043279",
+                                "operator": {
+                                    "managed": false
+                                },
+                                "status": "in-use",
+                                "macAddress": "0a:ff:c7:ec:41:cb",
+                                "privateIpAddress": "172.31.17.58",
+                                "privateDnsName": "ip-172-31-17-58.ec2.internal",
+                                "sourceDestCheck": true,
+                                "interfaceType": "interface",
+                                "groupSet": {
+                                    "items": [
+                                        {
+                                            "groupId": "sg-0077dd95c00a80e89",
+                                            "groupName": "Hacker-Open-Door"
+                                        }
+                                    ]
+                                },
+                                "attachment": {
+                                    "attachmentId": "eni-attach-04546264c5008810d",
+                                    "deviceIndex": 0,
+                                    "networkCardIndex": 0,
+                                    "status": "attaching",
+                                    "attachTime": 1766043262000,
+                                    "deleteOnTermination": true
+                                },
+                                "privateIpAddressesSet": {
+                                    "item": [
+                                        {
+                                            "privateIpAddress": "172.31.17.58",
+                                            "privateDnsName": "ip-172-31-17-58.ec2.internal",
+                                            "primary": true
+                                        }
+                                    ]
+                                },
+                                "ipv6AddressesSet": {},
+                                "tagSet": {}
+                            }
+                        ]
+                    },
+                    "iamInstanceProfile": {
+                        "arn": "arn:aws:iam::247140043279:instance-profile/Ops-Admin-Profile",
+                        "id": "AIPATTCVRZIHVKJ7GQGOK"
+                    },
+                    "ebsOptimized": false,
+                    "enaSupport": true,
+                    "cpuOptions": {
+                        "coreCount": 1,
+                        "threadsPerCore": 2
+                    },
+                    "capacityReservationSpecification": {
+                        "capacityReservationPreference": "open"
+                    },
+                    "enclaveOptions": {
+                        "enabled": false
+                    },
+                    "metadataOptions": {
+                        "state": "pending",
+                        "httpTokens": "optional",
+                        "httpPutResponseHopLimit": 1,
+                        "httpEndpoint": "enabled",
+                        "httpProtocolIpv4": "enabled",
+                        "httpProtocolIpv6": "disabled",
+                        "instanceMetadataTags": "disabled"
+                    },
+                    "maintenanceOptions": {
+                        "autoRecovery": "default",
+                        "rebootMigration": "default"
+                    },
+                    "privateDnsNameOptions": {
+                        "hostnameType": "ip-name",
+                        "enableResourceNameDnsARecord": false,
+                        "enableResourceNameDnsAAAARecord": false
+                    }
+                }
+            ]
+        }
+    },
+    "requestID": "a3579f88-2db0-4881-a05d-7f7e82272fb4",
+    "eventID": "0538ebf8-6397-4558-b320-b0ed8f5cef58",
+    "readOnly": false,
+    "resources": [
+        {
+            "accountId": "247140043279",
+            "type": "AWS::EC2::Instance",
+            "ARN": "arn:aws:ec2:us-east-1:247140043279:instance/i-0bf4bcc3209f4ae0d"
+        }
+    ],
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "recipientAccountId": "247140043279",
+    "eventCategory": "Management",
+    "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "ec2.us-east-1.amazonaws.com"
+    }
+}

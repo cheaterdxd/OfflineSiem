@@ -1,0 +1,19 @@
+id: ""
+title: "Bulk S3 Download via AWS CLI"
+description: "Detects large-scale data download using AWS CLI (sync, cp) from non-corporate IPs. This may indicate an insider threat downloading bulk data to a personal device."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - exfiltration
+  - s3
+detection:
+  severity: "high"
+  condition: "eventName = 'GetObject' AND userAgent CONTAINS 'aws-cli' AND sourceIPAddress NOT IN ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')"
+  aggregation:
+    enabled: true
+    window: "5m"
+    threshold: "> 10"
+output:
+  alert_title: "Bulk Download via AWS CLI"

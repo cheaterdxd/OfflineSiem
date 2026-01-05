@@ -1,0 +1,18 @@
+id: ""
+title: "K8s High Risk HostPath Mount"
+description: "Detects the creation of a Pod that mounts sensitive host paths (e.g., /etc/kubernetes, /var/lib/kubelet, /root, /etc/shadow, docker.sock). This allows attackers to access critical system files or control the container runtime."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - privilege-escalation
+  - host-path
+detection:
+  severity: "critical"
+  condition: "verb = 'create' AND objectRef.resource = 'pods' AND (requestObject CONTAINS '/etc/kubernetes' OR requestObject CONTAINS '/var/lib/kubelet' OR requestObject CONTAINS '/root' OR requestObject CONTAINS '/etc/shadow' OR requestObject CONTAINS 'docker.sock' OR requestObject CONTAINS 'containerd.sock')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Sensitive HostPath Mounted in Pod"
+[/;"

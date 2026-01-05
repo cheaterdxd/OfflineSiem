@@ -1,0 +1,17 @@
+id: ""
+title: "K8s CoreDNS Config Modification"
+description: "Detects modifications to the CoreDNS ConfigMap. Attackers may inject malicious DNS rewrite rules to redirect traffic to their own servers for interception or phishing."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - persistence
+  - network
+detection:
+  severity: "critical"
+  condition: "(verb = 'update' OR verb = 'patch') AND objectRef.resource = 'configmaps' AND objectRef.name = 'coredns' AND objectRef.namespace = 'kube-system'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "CoreDNS ConfigMap Modified"

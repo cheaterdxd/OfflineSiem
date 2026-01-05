@@ -1,0 +1,17 @@
+id: ""
+title: "S3 Data Exfiltration via Organization Role"
+description: "Detects potentially malicious S3 data access (Get, PutPolicy, PresignedUrl) by the OrganizationAccountAccessRole. Attackers often misuse this high-privileged role to exfiltrate sensitive data."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - aws
+  - exfiltration
+  - s3
+detection:
+  severity: "high"
+  condition: "userIdentity.sessionContext.sessionIssuer.userName = 'OrganizationAccountAccessRole' AND eventName IN ('PutBucketPolicy', 'GetObject', 'CreatePresignedUrl')"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Data Exfiltration Attempt via Org Role"

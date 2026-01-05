@@ -1,0 +1,17 @@
+id: ""
+title: "K8s Exec into Kube-System Pod"
+description: "Detects 'kubectl exec' commands targeting the 'kube-system' namespace. Attackers often target system pods (like CNI, CoreDNS, Kube-Proxy) to gain high privileges or persistence."
+author: "tuanlt26"
+status: "active"
+date: "2026-01-05"
+tags:
+  - k8s
+  - lateral-movement
+  - privilege-escalation
+detection:
+  severity: "critical"
+  condition: "verb = 'create' AND objectRef.subresource = 'exec' AND objectRef.namespace = 'kube-system'"
+  aggregation:
+    enabled: false
+output:
+  alert_title: "Exec into Kube-System Pod Detected"
