@@ -10,7 +10,7 @@ tags:
   - rds
 detection:
   severity: "high"
-  condition: "eventName IN ('StartExportTask', 'StartExportTaskForSnapshot')"
+  condition: "eventName IN ('StartExportTask', 'StartExportTaskForSnapshot') AND requestParameters.s3BucketName != [List_Trusted_Buckets]" 
   aggregation:
     enabled: false
 output:
