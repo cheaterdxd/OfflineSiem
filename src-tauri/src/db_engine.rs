@@ -45,44 +45,6 @@ pub fn execute_scan_query(
     }
 }
 
-/// Get the count of matching rows for a rule condition.
-pub fn get_match_count(
-    conn: &Connection,
-    log_path: &str,
-    condition: &str,
-    log_type: LogType,
-) -> Result<usize, SiemError> {
-    match log_type {
-        LogType::CloudTrail => {
-            // For CloudTrail, load all events and count matches
-            let all_events = load_all_events(conn, log_path, log_type)?;
-            let count = all_events
-                .iter()
-                .filter(|event| matches_condition(event, condition))
-                .count();
-            Ok(count)
-        }
-        LogType::FlatJson => {
-            // For flat JSON, use DuckDB
-            let escaped_path = log_path.replace("'", "''");
-            let query = format!(
-                "SELECT COUNT(*) as cnt FROM read_json_auto('{}') WHERE {}",
-                escaped_path, condition
-            );
-
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(|e| SiemError::Query(format!("Failed to prepare query: {}", e)))?;
-
-            let count: i64 = stmt
-                .query_row([], |row| row.get(0))
-                .map_err(|e| SiemError::Query(format!("Failed to get count: {}", e)))?;
-
-            Ok(count as usize)
-        }
-    }
-}
-
 /// Execute an ad-hoc SQL query against log files.
 pub fn execute_adhoc_query(
     conn: &Connection,

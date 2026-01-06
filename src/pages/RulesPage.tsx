@@ -196,7 +196,7 @@ export const RulesPage: React.FC = () => {
     async function handleImportRules() {
         try {
             const selected = await open({
-                multiple: false,
+                multiple: true, // Enable multiple file selection
                 filters: [
                     { name: 'Rule Files', extensions: ['yaml', 'yml', 'zip'] }
                 ]
@@ -204,26 +204,58 @@ export const RulesPage: React.FC = () => {
 
             if (!selected) return;
 
-            const filePath = typeof selected === 'string' ? selected : selected[0];
-            const isZip = filePath.toLowerCase().endsWith('.zip');
+            // Handle both single and multiple file selection
+            const files = Array.isArray(selected) ? selected : [selected];
 
-            if (isZip) {
-                const overwrite = confirm('Overwrite existing rules with same ID?');
-                const summary: ImportSummary = await ruleService.importRulesZip(filePath, overwrite);
+            // Separate ZIP files from YAML files
+            const zipFiles = files.filter(f => f.toLowerCase().endsWith('.zip'));
+            const yamlFiles = files.filter(f => f.toLowerCase().endsWith('.yaml') || f.toLowerCase().endsWith('.yml'));
 
-                let message = `Import complete!\n\nSuccessfully imported: ${summary.success_count} rules`;
-                if (summary.skipped.length > 0) {
-                    message += `\nSkipped (already exist): ${summary.skipped.length} rules`;
-                }
-                if (summary.errors.length > 0) {
-                    message += `\nErrors: ${summary.errors.length} rules`;
-                }
-                alert(message);
-            } else {
-                await ruleService.importRule(filePath, true);
-                alert('Rule imported successfully!');
+            // Always overwrite existing rules (no confirmation needed)
+            const overwrite = true;
+            let totalSummary: ImportSummary = {
+                success_count: 0,
+                skipped: [],
+                errors: []
+            };
+
+            // Import ZIP files sequentially (await ensures each completes before next)
+            for (const zipFile of zipFiles) {
+                const summary: ImportSummary = await ruleService.importRulesZip(zipFile, overwrite);
+                totalSummary.success_count += summary.success_count;
+                totalSummary.skipped.push(...summary.skipped);
+                totalSummary.errors.push(...summary.errors);
             }
 
+            // Import YAML files in batch (await ensures this runs after ZIP imports)
+            if (yamlFiles.length > 0) {
+                const summary: ImportSummary = await ruleService.importMultipleRules(yamlFiles, overwrite);
+                totalSummary.success_count += summary.success_count;
+                totalSummary.skipped.push(...summary.skipped);
+                totalSummary.errors.push(...summary.errors);
+            }
+
+            // Show detailed summary
+            let message = `✅ Import Complete!\n\n`;
+            message += `📊 Summary:\n`;
+            message += `  • Successfully imported: ${totalSummary.success_count} rules\n`;
+
+            if (totalSummary.skipped.length > 0) {
+                message += `  • Skipped (already exist): ${totalSummary.skipped.length} rules\n`;
+            }
+
+            if (totalSummary.errors.length > 0) {
+                message += `  • Errors: ${totalSummary.errors.length} rules\n\n`;
+                message += `❌ Error Details:\n`;
+                totalSummary.errors.slice(0, 5).forEach(err => {
+                    message += `  • ${err}\n`;
+                });
+                if (totalSummary.errors.length > 5) {
+                    message += `  ... and ${totalSummary.errors.length - 5} more errors\n`;
+                }
+            }
+
+            alert(message);
             await loadRules();
         } catch (err: any) {
             if (err.toString().includes('already exists')) {
@@ -317,7 +349,7 @@ export const RulesPage: React.FC = () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h1 style={{ margin: 0 }}>Detection Rules</h1>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <Tooltip content="Import rules from YAML or ZIP file" position="bottom">
+                    <Tooltip content="Import rules from YAML files (supports multiple selection) or ZIP archive" position="bottom">
                         <Button variant="secondary" onClick={handleImportRules}>📥 Import</Button>
                     </Tooltip>
                     <Tooltip content="Export all rules as ZIP archive" position="bottom">

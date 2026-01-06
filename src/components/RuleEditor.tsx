@@ -25,7 +25,6 @@ export const RuleEditor: React.FC<RuleEditorProps> = ({ rule, onSave, onCancel, 
         detection: {
             severity: rule?.detection.severity || "medium",
             condition: rule?.detection.condition || "",
-            aggregation: rule?.detection.aggregation,
         },
         output: rule?.output,
     });

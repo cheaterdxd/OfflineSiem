@@ -11,11 +11,6 @@ export interface RuleYaml {
     detection: {
         severity: string;
         condition: string;
-        aggregation?: {
-            enabled: boolean;
-            window: string;
-            threshold: string;
-        };
     };
     output?: {
         alert_title: string;
@@ -53,6 +48,10 @@ export const ruleService = {
 
     importRulesZip: async (zipPath: string, overwrite: boolean): Promise<ImportSummary> => {
         return await invoke("import_rules_zip", { zipPath, overwrite });
+    },
+
+    importMultipleRules: async (filePaths: string[], overwrite: boolean): Promise<ImportSummary> => {
+        return await invoke("import_multiple_rules", { filePaths, overwrite });
     },
 };
 

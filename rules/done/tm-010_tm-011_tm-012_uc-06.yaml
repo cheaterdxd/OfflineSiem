@@ -15,4 +15,3 @@ detection:
     enabled: false
 output:
   alert_title: "Sensitive HostPath Mounted in Pod"
-[/;"

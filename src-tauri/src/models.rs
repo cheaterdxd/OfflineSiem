@@ -43,7 +43,7 @@ pub struct RuleYaml {
     pub output: Option<OutputConfig>,
 }
 
-/// Detection logic containing the SQL condition and optional aggregation.
+/// Detection logic containing the SQL condition.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DetectionLogic {
     /// Severity level: "info", "low", "medium", "high", "critical"
@@ -51,20 +51,6 @@ pub struct DetectionLogic {
     /// SQL WHERE clause compatible with DuckDB
     /// Example: "event_id = 4625 AND username = 'admin'"
     pub condition: String,
-    /// Optional aggregation settings for time-window based detection
-    #[serde(default)]
-    pub aggregation: Option<Aggregation>,
-}
-
-/// Aggregation configuration for threshold-based detection.
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Aggregation {
-    /// Whether aggregation is enabled
-    pub enabled: bool,
-    /// Time window (e.g., "5m", "1h")
-    pub window: String,
-    /// Threshold expression (e.g., "> 5", ">= 10")
-    pub threshold: String,
 }
 
 /// Output configuration for alert formatting.
@@ -123,9 +109,6 @@ pub struct QueryResult {
 /// Custom error types for the application.
 #[derive(Debug, thiserror::Error)]
 pub enum SiemError {
-    #[error("Database error: {0}")]
-    Database(String),
-
     #[error("Rule error: {0}")]
     Rule(String),
 
@@ -169,15 +152,8 @@ pub struct LogFileInfo {
 }
 
 // ============================================================================
-// Scan Request/Response Structures
+// Scan Response Structures
 // ============================================================================
-
-/// Request to scan log files with all active rules.
-#[derive(Debug, Deserialize)]
-pub struct ScanRequest {
-    /// Path to the log file or directory to scan
-    pub log_path: String,
-}
 
 /// Response from a scan operation.
 #[derive(Debug, Serialize)]
@@ -193,14 +169,6 @@ pub struct ScanResponse {
 // ============================================================================
 // Rule Testing Structures
 // ============================================================================
-
-/// Request to test a rule condition against loaded events
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TestRuleRequest {
-    pub condition: String,
-    pub log_path: String,
-    pub log_type: LogType,
-}
 
 /// Result of testing a rule
 #[derive(Debug, Serialize, Deserialize, Clone)]

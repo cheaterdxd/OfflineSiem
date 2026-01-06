@@ -2,6 +2,8 @@
 //!
 //! This module registers all Tauri commands and initializes the application.
 
+#![allow(non_snake_case)]
+
 mod config;
 mod db_engine;
 mod log_manager;
@@ -24,8 +26,8 @@ async fn list_rules(app_handle: tauri::AppHandle) -> Result<Vec<RuleYaml>, SiemE
 
 /// Get a single rule by ID.
 #[tauri::command]
-async fn get_rule(app_handle: tauri::AppHandle, rule_id: String) -> Result<RuleYaml, SiemError> {
-    rule_manager::get_rule(&app_handle, &rule_id)
+async fn get_rule(app_handle: tauri::AppHandle, ruleId: String) -> Result<RuleYaml, SiemError> {
+    rule_manager::get_rule(&app_handle, &ruleId)
 }
 
 /// Save a rule (create or update).
@@ -36,47 +38,57 @@ async fn save_rule(app_handle: tauri::AppHandle, rule: RuleYaml) -> Result<RuleY
 
 /// Delete a rule by ID.
 #[tauri::command]
-async fn delete_rule(app_handle: tauri::AppHandle, rule_id: String) -> Result<(), SiemError> {
-    rule_manager::delete_rule(&app_handle, &rule_id)
+async fn delete_rule(app_handle: tauri::AppHandle, ruleId: String) -> Result<(), SiemError> {
+    rule_manager::delete_rule(&app_handle, &ruleId)
 }
 
 /// Export a single rule to a YAML file.
 #[tauri::command]
 async fn export_rule(
     app_handle: tauri::AppHandle,
-    rule_id: String,
-    dest_path: String,
+    ruleId: String,
+    destPath: String,
 ) -> Result<(), SiemError> {
-    rule_manager::export_rule(&app_handle, &rule_id, &dest_path)
+    rule_manager::export_rule(&app_handle, &ruleId, &destPath)
 }
 
 /// Export all rules to a ZIP archive.
 #[tauri::command]
 async fn export_all_rules(
     app_handle: tauri::AppHandle,
-    dest_path: String,
+    destPath: String,
 ) -> Result<usize, SiemError> {
-    rule_manager::export_all_rules(&app_handle, &dest_path)
+    rule_manager::export_all_rules(&app_handle, &destPath)
 }
 
 /// Import a single rule from a YAML file.
 #[tauri::command]
 async fn import_rule(
     app_handle: tauri::AppHandle,
-    source_path: String,
+    sourcePath: String,
     overwrite: bool,
 ) -> Result<RuleYaml, SiemError> {
-    rule_manager::import_rule(&app_handle, &source_path, overwrite)
+    rule_manager::import_rule(&app_handle, &sourcePath, overwrite)
 }
 
 /// Import multiple rules from a ZIP archive.
 #[tauri::command]
 async fn import_rules_zip(
     app_handle: tauri::AppHandle,
-    zip_path: String,
+    zipPath: String,
     overwrite: bool,
 ) -> Result<rule_manager::ImportSummary, SiemError> {
-    rule_manager::import_rules_zip(&app_handle, &zip_path, overwrite)
+    rule_manager::import_rules_zip(&app_handle, &zipPath, overwrite)
+}
+
+/// Import multiple rules from a list of YAML file paths.
+#[tauri::command]
+async fn import_multiple_rules(
+    app_handle: tauri::AppHandle,
+    filePaths: Vec<String>,
+    overwrite: bool,
+) -> Result<rule_manager::ImportSummary, SiemError> {
+    rule_manager::import_multiple_rules(&app_handle, filePaths, overwrite)
 }
 
 // ============================================================================
@@ -93,8 +105,8 @@ async fn import_rules_zip(
 #[tauri::command]
 async fn scan_logs(
     app_handle: tauri::AppHandle,
-    log_path: String,
-    log_type: models::LogType,
+    logPath: String,
+    logType: models::LogType,
 ) -> Result<ScanResponse, SiemError> {
     let start = Instant::now();
 
@@ -102,7 +114,7 @@ async fn scan_logs(
     let conn = db_engine::create_connection()?;
 
     // Validate log file first
-    db_engine::validate_log_file(&conn, &log_path)?;
+    db_engine::validate_log_file(&conn, &logPath)?;
 
     // Load all active rules
     let active_rules = rule_manager::list_active_rules(&app_handle)?;
@@ -115,10 +127,10 @@ async fn scan_logs(
         // Get all matching events for this rule
         let matching_events = db_engine::execute_scan_query(
             &conn,
-            &log_path,
+            &logPath,
             &rule.detection.condition,
             1000, // Get up to 1000 matches
-            log_type.clone(),
+            logType.clone(),
         );
 
         match matching_events {
@@ -199,18 +211,18 @@ async fn run_query(query: String) -> Result<QueryResult, SiemError> {
 /// Load all events from a log file for viewing.
 #[tauri::command]
 async fn load_log_events(
-    log_path: String,
-    log_type: models::LogType,
+    logPath: String,
+    logType: models::LogType,
 ) -> Result<Vec<serde_json::Value>, SiemError> {
     let conn = db_engine::create_connection()?;
-    db_engine::load_all_events(&conn, &log_path, log_type)
+    db_engine::load_all_events(&conn, &logPath, logType)
 }
 
 /// Validate that a log file can be read by DuckDB.
 #[tauri::command]
-async fn validate_log_file(log_path: String) -> Result<bool, SiemError> {
+async fn validate_log_file(logPath: String) -> Result<bool, SiemError> {
     let conn = db_engine::create_connection()?;
-    db_engine::validate_log_file(&conn, &log_path)
+    db_engine::validate_log_file(&conn, &logPath)
 }
 
 // ============================================================================
@@ -257,9 +269,9 @@ async fn list_log_files(app_handle: tauri::AppHandle) -> Result<Vec<LogFileInfo>
 #[tauri::command]
 async fn import_log_file(
     app_handle: tauri::AppHandle,
-    source_path: String,
+    sourcePath: String,
 ) -> Result<LogFileInfo, SiemError> {
-    log_manager::import_log_file(&app_handle, &source_path)
+    log_manager::import_log_file(&app_handle, &sourcePath)
 }
 
 /// Delete a log file from the monitored folder.
@@ -346,6 +358,7 @@ pub fn run() {
             export_all_rules,
             import_rule,
             import_rules_zip,
+            import_multiple_rules,
             // Scanning
             scan_logs,
             // Ad-hoc queries

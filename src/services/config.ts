@@ -29,7 +29,7 @@ export async function getConfig(): Promise<AppConfig> {
  * Save application configuration
  */
 export async function saveConfig(config: AppConfig): Promise<void> {
-    await invoke("save_config", { configData: config });
+    await invoke("save_config", { config_data: config });
 }
 
 /**
@@ -54,7 +54,7 @@ export async function setLogsDirectory(
  * Add a log file to recent files list
  */
 export async function addRecentLogFile(filePath: string): Promise<AppConfig> {
-    return await invoke<AppConfig>("add_recent_log_file", { filePath });
+    return await invoke<AppConfig>("add_recent_log_file", { file_path: filePath });
 }
 
 /**

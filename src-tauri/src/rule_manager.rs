@@ -171,7 +171,7 @@ pub fn import_rule(
     let content = fs::read_to_string(source_path)
         .map_err(|e| SiemError::FileIO(format!("Cannot read import file: {}", e)))?;
 
-    let mut rule: RuleYaml = serde_yaml::from_str(&content)
+    let rule: RuleYaml = serde_yaml::from_str(&content)
         .map_err(|e| SiemError::Serialization(format!("Cannot parse YAML: {}", e)))?;
 
     // Check if rule already exists
@@ -269,6 +269,75 @@ pub fn import_rules_zip(
     Ok(summary)
 }
 
+/// Import multiple rules from a list of YAML file paths.
+pub fn import_multiple_rules(
+    app_handle: &tauri::AppHandle,
+    file_paths: Vec<String>,
+    overwrite: bool,
+) -> Result<ImportSummary, SiemError> {
+    let mut summary = ImportSummary {
+        success_count: 0,
+        skipped: Vec::new(),
+        errors: Vec::new(),
+    };
+
+    for file_path in file_paths {
+        // Extract filename for error reporting
+        let filename = std::path::Path::new(&file_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(&file_path)
+            .to_string();
+
+        // Skip non-YAML files
+        if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
+            summary
+                .errors
+                .push(format!("{}: Not a YAML file", filename));
+            continue;
+        }
+
+        // Read file content
+        let content = match fs::read_to_string(&file_path) {
+            Ok(c) => c,
+            Err(e) => {
+                summary
+                    .errors
+                    .push(format!("{}: Cannot read file - {}", filename, e));
+                continue;
+            }
+        };
+
+        // Parse rule
+        let rule: RuleYaml = match serde_yaml::from_str(&content) {
+            Ok(r) => r,
+            Err(e) => {
+                summary
+                    .errors
+                    .push(format!("{}: Invalid YAML - {}", filename, e));
+                continue;
+            }
+        };
+
+        // Check if rule already exists
+        let rules_dir = get_rules_dir(app_handle)?;
+        let existing_path = rules_dir.join(format!("{}.yaml", rule.id));
+
+        if existing_path.exists() && !overwrite {
+            summary.skipped.push(rule.id.clone());
+            continue;
+        }
+
+        // Save rule
+        match save_rule(app_handle, rule) {
+            Ok(_) => summary.success_count += 1,
+            Err(e) => summary.errors.push(format!("{}: {}", filename, e)),
+        }
+    }
+
+    Ok(summary)
+}
+
 /// Helper function to load a rule from a file path.
 fn load_rule_from_path(path: &PathBuf) -> Result<RuleYaml, SiemError> {
     let content = fs::read_to_string(path)
@@ -276,39 +345,4 @@ fn load_rule_from_path(path: &PathBuf) -> Result<RuleYaml, SiemError> {
 
     serde_yaml::from_str(&content)
         .map_err(|e| SiemError::Serialization(format!("Cannot parse YAML: {}", e)))
-}
-
-/// Create a sample rule for testing purposes.
-pub fn create_sample_rule() -> RuleYaml {
-    RuleYaml {
-        id: String::new(), // Will be generated on save
-        title: "SSH Brute Force Detection".to_string(),
-        description: "Detects multiple failed SSH login attempts".to_string(),
-        author: "Security Team".to_string(),
-        status: "active".to_string(),
-        date: String::new(), // Will be set on save
-        tags: vec![
-            "ssh".to_string(),
-            "brute-force".to_string(),
-            "authentication".to_string(),
-        ],
-        detection: crate::models::DetectionLogic {
-            severity: "high".to_string(),
-            condition: "event_id = 4625 AND logon_type = 10".to_string(),
-            aggregation: None,
-        },
-        output: None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_create_sample_rule() {
-        let rule = create_sample_rule();
-        assert!(!rule.title.is_empty());
-        assert_eq!(rule.status, "active");
-    }
 }
