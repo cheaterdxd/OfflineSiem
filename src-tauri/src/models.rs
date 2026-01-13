@@ -81,6 +81,9 @@ pub struct AlertEvent {
     /// Sample of matched log entries (limited to avoid memory overflow)
     /// Uses serde_json::Value to handle arbitrary JSON schemas
     pub evidence: Vec<serde_json::Value>,
+    /// Source log file that generated this alert (optional, used in bulk scans)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_file: Option<String>,
 }
 
 // ============================================================================
@@ -147,8 +150,24 @@ pub struct LogFileInfo {
     pub size_bytes: u64,
     /// Last modified timestamp (ISO 8601)
     pub modified: String,
-    /// Estimated number of events (if available)
-    pub event_count: Option<usize>,
+    /// Log format type (CloudTrail or FlatJson)
+    #[serde(default)]
+    pub log_type: Option<LogType>,
+}
+
+/// Summary of batch import operation.
+#[derive(Debug, Serialize, Clone)]
+pub struct ImportSummary {
+    /// Total number of files attempted
+    pub total: usize,
+    /// Number of files successfully imported
+    pub succeeded: usize,
+    /// Number of files that failed to import
+    pub failed: usize,
+    /// List of successfully imported files
+    pub imported_files: Vec<LogFileInfo>,
+    /// List of error messages for failed imports
+    pub errors: Vec<String>,
 }
 
 // ============================================================================
@@ -164,6 +183,47 @@ pub struct ScanResponse {
     pub rules_evaluated: usize,
     /// Total scan time in milliseconds
     pub scan_time_ms: u64,
+}
+
+/// Response from a bulk scan operation (scanning all logs in library).
+#[derive(Debug, Serialize)]
+pub struct BulkScanResponse {
+    /// Total number of alerts across all files
+    pub total_alerts: usize,
+    /// Total number of files scanned
+    pub total_files_scanned: usize,
+    /// Total scan time in milliseconds
+    pub total_scan_time_ms: u64,
+    /// Number of rules evaluated
+    pub rules_evaluated: usize,
+    /// Results grouped by file
+    pub file_results: Vec<FileScanResult>,
+    /// Files that failed to scan
+    pub failed_files: Vec<FailedFileScan>,
+}
+
+/// Scan result for a single file in a bulk scan.
+#[derive(Debug, Serialize, Clone)]
+pub struct FileScanResult {
+    /// Filename without path
+    pub file_name: String,
+    /// Full path to the file
+    pub file_path: String,
+    /// Alerts generated from this file
+    pub alerts: Vec<AlertEvent>,
+    /// Scan time for this file in milliseconds
+    pub scan_time_ms: u64,
+}
+
+/// Information about a file that failed to scan.
+#[derive(Debug, Serialize, Clone)]
+pub struct FailedFileScan {
+    /// Filename without path
+    pub file_name: String,
+    /// Full path to the file
+    pub file_path: String,
+    /// Error message
+    pub error: String,
 }
 
 // ============================================================================

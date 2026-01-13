@@ -1,17 +1,18 @@
-id: ""
-title: "AWS Lateral Movement via Organization Role"
-description: "Detects usage of 'OrganizationAccountAccessRole' by a Root or IAM User. This role allows admins to jump between AWS accounts in an organization and is a high-value target for lateral movement."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: AWS Lateral Movement via Organization Role
+description: Detects usage of 'OrganizationAccountAccessRole' by a Root or IAM User. This role allows admins to jump between AWS accounts in an organization and is a high-value target for lateral movement.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - lateral-movement
   - iam
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName = 'AssumeRole' AND requestParameters.roleArn CONTAINS 'OrganizationAccountAccessRole' AND userIdentity.type IN ('Root', 'IAMUser')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Lateral Movement via OrganizationAccountAccessRole"
+  alert_title: Lateral Movement via OrganizationAccountAccessRole

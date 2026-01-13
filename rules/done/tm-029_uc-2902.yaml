@@ -1,17 +1,18 @@
-id: ""
-title: "AWS Backdoor in Organization Role Trust Policy"
-description: "Detects modifications to the Trust Policy of 'OrganizationAccountAccessRole'. Attackers may add their own external AWS accounts to this policy to maintain persistent access to the organization."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: AWS Backdoor in Organization Role Trust Policy
+description: Detects modifications to the Trust Policy of 'OrganizationAccountAccessRole'. Attackers may add their own external AWS accounts to this policy to maintain persistent access to the organization.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - persistence
   - iam
 detection:
-  severity: "critical"
+  severity: critical
   condition: "eventName = 'UpdateAssumeRolePolicy' AND requestParameters.roleName = 'OrganizationAccountAccessRole'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Organization Role Trust Policy Modified"
+  alert_title: Organization Role Trust Policy Modified

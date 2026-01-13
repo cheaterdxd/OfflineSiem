@@ -96,16 +96,27 @@ pub fn validate_condition(condition: &str) -> ValidationResult {
     }
 
     // 2. Check for supported operators
-    let has_operator = condition.contains('=') || condition.to_uppercase().contains(" CONTAINS ");
+    let upper_cond = condition.to_uppercase();
+    let has_operator = condition.contains('=')
+        || condition.contains("!=")
+        || condition.contains("<>")
+        || upper_cond.contains(" CONTAINS ")
+        || upper_cond.contains(" IN ")
+        || upper_cond.contains(" STARTSWITH ")
+        || upper_cond.contains(" ENDSWITH ")
+        || upper_cond.contains(" MATCH ");
 
     if !has_operator {
         return ValidationResult {
             valid: false,
-            error_message: Some("No operator found. Use = or CONTAINS".to_string()),
+            error_message: Some(
+                "No operator found. Use =, IN, CONTAINS, STARTSWITH, etc.".to_string(),
+            ),
             error_position: None,
             suggestions: vec![
                 "Example: field = 'value'".to_string(),
                 "Example: field CONTAINS 'text'".to_string(),
+                "Example: field IN ('a', 'b')".to_string(),
             ],
         };
     }
@@ -259,5 +270,23 @@ mod tests {
     fn test_validate_condition_no_operator() {
         let result = validate_condition("eventName AssumeRole");
         assert!(!result.valid);
+    }
+
+    #[test]
+    fn test_validate_condition_in() {
+        let result = validate_condition("eventName IN ('A', 'B')");
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn test_validate_condition_startswith() {
+        let result = validate_condition("eventName STARTSWITH 'Assume'");
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn test_validate_condition_match() {
+        let result = validate_condition("eventName MATCH 'Assume*'");
+        assert!(result.valid);
     }
 }

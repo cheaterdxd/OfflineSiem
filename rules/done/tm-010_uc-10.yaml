@@ -1,17 +1,17 @@
-id: ""
-title: "K8s Malicious Admission Webhook Creation"
-description: "Detects the creation or modification of MutatingAdmissionWebhooks. Attackers with cluster-admin privileges can register malicious webhooks to intercept, modify, or capture all traffic/objects in the cluster."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: K8s Malicious Admission Webhook Creation
+description: Detects the creation or modification of MutatingAdmissionWebhooks. Attackers with cluster-admin privileges can register malicious webhooks to intercept, modify, or capture all traffic/objects in the cluster.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - k8s
   - persistence
   - defense-evasion
 detection:
-  severity: "critical"
+  severity: critical
   condition: "(verb = 'create' OR verb = 'update' OR verb = 'patch') AND objectRef.resource = 'mutatingwebhookconfigurations'"
   aggregation:
     enabled: false
 output:
-  alert_title: "Mutating Admission Webhook Modified"
+  alert_title: Mutating Admission Webhook Modified

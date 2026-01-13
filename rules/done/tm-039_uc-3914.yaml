@@ -1,17 +1,18 @@
-id: ""
-title: "VPC Traffic Mirroring Session Created"
-description: "Detects the creation of VPC Traffic Mirroring sessions. This feature copies network traffic to a target, which attackers can use to sniff sensitive data on the wire."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: VPC Traffic Mirroring Session Created
+description: Detects the creation of VPC Traffic Mirroring sessions. This feature copies network traffic to a target, which attackers can use to sniff sensitive data on the wire.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - network
 detection:
-  severity: "critical"
+  severity: critical
   condition: "eventName IN ('CreateTrafficMirrorSession', 'CreateTrafficMirrorTarget')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Traffic Mirroring Session Detected"
+  alert_title: Traffic Mirroring Session Detected

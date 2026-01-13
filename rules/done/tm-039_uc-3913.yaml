@@ -1,17 +1,18 @@
-id: ""
-title: "DMS Exfiltration Task Created"
-description: "Detects creation of a Database Migration Service (DMS) instance or endpoint. Attackers use DMS to migrate internal databases to external targets for exfiltration."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: DMS Exfiltration Task Created
+description: Detects creation of a Database Migration Service (DMS) instance or endpoint. Attackers use DMS to migrate internal databases to external targets for exfiltration.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - dms
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName IN ('CreateReplicationInstance', 'CreateEndpoint')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "DMS Replication Created"
+  alert_title: DMS Replication Created

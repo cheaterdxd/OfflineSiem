@@ -1,17 +1,18 @@
-id: ""
-title: "ECR Cross-Account Image Push"
-description: "Detects attempts to get ECR authorization tokens or push images. Attackers may package stolen data into a Docker image and push it to an external ECR repository."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: ECR Cross-Account Image Push
+description: Detects attempts to get ECR authorization tokens or push images. Attackers may package stolen data into a Docker image and push it to an external ECR repository.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - ecr
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName = 'GetAuthorizationToken' OR eventName = 'PutImage'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Potential ECR Exfiltration"
+  alert_title: Potential ECR Exfiltration

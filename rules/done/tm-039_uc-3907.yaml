@@ -1,17 +1,18 @@
-id: ""
-title: "RDS Export to S3 Task Started"
-description: "Detects the initiation of an RDS export task to S3. Attackers can use this feature to dump an entire database to an S3 bucket in their own account."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: RDS Export to S3 Task Started
+description: Detects the initiation of an RDS export task to S3. Attackers can use this feature to dump an entire database to an S3 bucket in their own account.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - rds
 detection:
-  severity: "high"
-  condition: "eventName IN ('StartExportTask', 'StartExportTaskForSnapshot') AND requestParameters.s3BucketName != [List_Trusted_Buckets]" 
+  severity: high
+  condition: "eventName IN ('StartExportTask', 'StartExportTaskForSnapshot') AND requestParameters.s3BucketName != [List_Trusted_Buckets]"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "RDS Database Exported to S3"
+  alert_title: RDS Database Exported to S3

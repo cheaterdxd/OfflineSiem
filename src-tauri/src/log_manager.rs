@@ -6,11 +6,12 @@
 //! - Delete log files from the monitored folder
 //! - Get metadata about log files (size, modified date, event count)
 
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::time::SystemTime;
 
-use crate::models::{LogFileInfo, SiemError};
+use crate::models::{ImportSummary, LogFileInfo, LogType, SiemError};
 use tauri::Manager;
 
 /// Get the directory path where log files are stored.
@@ -31,6 +32,62 @@ pub fn get_logs_dir(app_handle: &tauri::AppHandle) -> Result<PathBuf, SiemError>
     Ok(logs_dir)
 }
 
+/// Get the path to the metadata file.
+fn get_metadata_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, SiemError> {
+    let logs_dir = get_logs_dir(app_handle)?;
+    Ok(logs_dir.join("metadata.json"))
+}
+
+/// Load metadata from file.
+fn load_metadata(app_handle: &tauri::AppHandle) -> HashMap<String, LogType> {
+    let metadata_path = match get_metadata_path(app_handle) {
+        Ok(path) => path,
+        Err(_) => return HashMap::new(),
+    };
+
+    if !metadata_path.exists() {
+        return HashMap::new();
+    }
+
+    match fs::read_to_string(&metadata_path) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => HashMap::new(),
+    }
+}
+
+/// Save metadata to file.
+fn save_metadata(
+    app_handle: &tauri::AppHandle,
+    metadata: &HashMap<String, LogType>,
+) -> Result<(), SiemError> {
+    let metadata_path = get_metadata_path(app_handle)?;
+    let content = serde_json::to_string_pretty(metadata)
+        .map_err(|e| SiemError::Serialization(format!("Cannot serialize metadata: {}", e)))?;
+
+    fs::write(&metadata_path, content)
+        .map_err(|e| SiemError::FileIO(format!("Cannot write metadata: {}", e)))?;
+
+    Ok(())
+}
+
+/// Set log type for a specific file.
+pub fn set_log_type(
+    app_handle: &tauri::AppHandle,
+    filename: &str,
+    log_type: LogType,
+) -> Result<(), SiemError> {
+    let mut metadata = load_metadata(app_handle);
+    metadata.insert(filename.to_string(), log_type);
+    save_metadata(app_handle, &metadata)?;
+    Ok(())
+}
+
+/// Get log type for a specific file.
+pub fn get_log_type(app_handle: &tauri::AppHandle, filename: &str) -> Option<LogType> {
+    let metadata = load_metadata(app_handle);
+    metadata.get(filename).cloned()
+}
+
 /// List all JSON log files in the monitored folder.
 pub fn list_log_files(app_handle: &tauri::AppHandle) -> Result<Vec<LogFileInfo>, SiemError> {
     let logs_dir = get_logs_dir(app_handle)?;
@@ -40,6 +97,9 @@ pub fn list_log_files(app_handle: &tauri::AppHandle) -> Result<Vec<LogFileInfo>,
         return Ok(log_files);
     }
 
+    // Load metadata once for all files
+    let metadata = load_metadata(app_handle);
+
     let entries = fs::read_dir(&logs_dir)
         .map_err(|e| SiemError::FileIO(format!("Cannot read logs dir: {}", e)))?;
 
@@ -47,9 +107,12 @@ pub fn list_log_files(app_handle: &tauri::AppHandle) -> Result<Vec<LogFileInfo>,
         let entry = entry.map_err(|e| SiemError::FileIO(format!("Cannot read entry: {}", e)))?;
         let path = entry.path();
 
-        // Only include .json files
-        if path.extension().map_or(false, |ext| ext == "json") {
-            match get_log_file_info(&path) {
+        // Get filename for checking
+        let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        // Only include .json files, but exclude metadata.json (system file)
+        if path.extension().map_or(false, |ext| ext == "json") && filename != "metadata.json" {
+            match get_log_file_info_with_metadata(&path, &metadata) {
                 Ok(info) => log_files.push(info),
                 Err(e) => {
                     // Log error but continue loading other files
@@ -70,6 +133,7 @@ pub fn list_log_files(app_handle: &tauri::AppHandle) -> Result<Vec<LogFileInfo>,
 pub fn import_log_file(
     app_handle: &tauri::AppHandle,
     source_path: &str,
+    log_type: LogType,
 ) -> Result<LogFileInfo, SiemError> {
     let source = PathBuf::from(source_path);
 
@@ -111,8 +175,52 @@ pub fn import_log_file(
     fs::copy(&source, &dest_path)
         .map_err(|e| SiemError::FileIO(format!("Cannot copy file: {}", e)))?;
 
-    // Return info about the newly imported file
-    get_log_file_info(&dest_path)
+    // Save log type to metadata
+    set_log_type(app_handle, &filename, log_type.clone())?;
+
+    // Return info about the newly imported file with log type
+    let mut info = get_log_file_info(&dest_path)?;
+    info.log_type = Some(log_type);
+    Ok(info)
+}
+
+/// Import multiple log files at once with the same log type.
+/// Returns a summary of the import operation.
+pub fn import_multiple_log_files(
+    app_handle: &tauri::AppHandle,
+    source_paths: Vec<String>,
+    log_type: LogType,
+) -> Result<ImportSummary, SiemError> {
+    let total = source_paths.len();
+    let mut succeeded = 0;
+    let mut failed = 0;
+    let mut imported_files = Vec::new();
+    let mut errors = Vec::new();
+
+    for source_path in source_paths {
+        match import_log_file(app_handle, &source_path, log_type.clone()) {
+            Ok(file_info) => {
+                succeeded += 1;
+                imported_files.push(file_info);
+            }
+            Err(e) => {
+                failed += 1;
+                let filename = std::path::Path::new(&source_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(&source_path);
+                errors.push(format!("{}: {}", filename, e));
+            }
+        }
+    }
+
+    Ok(ImportSummary {
+        total,
+        succeeded,
+        failed,
+        imported_files,
+        errors,
+    })
 }
 
 /// Delete a log file from the monitored folder.
@@ -137,8 +245,11 @@ pub fn delete_log_file(app_handle: &tauri::AppHandle, filename: &str) -> Result<
     Ok(())
 }
 
-/// Get detailed information about a specific log file.
-fn get_log_file_info(path: &PathBuf) -> Result<LogFileInfo, SiemError> {
+/// Get detailed information about a specific log file with metadata.
+fn get_log_file_info_with_metadata(
+    path: &PathBuf,
+    metadata_map: &HashMap<String, LogType>,
+) -> Result<LogFileInfo, SiemError> {
     let metadata = fs::metadata(path)
         .map_err(|e| SiemError::FileIO(format!("Cannot read file metadata: {}", e)))?;
 
@@ -152,70 +263,20 @@ fn get_log_file_info(path: &PathBuf) -> Result<LogFileInfo, SiemError> {
 
     let modified_str = chrono::DateTime::<chrono::Utc>::from(modified).to_rfc3339();
 
-    // Try to estimate event count by reading the file
-    let event_count = estimate_event_count(path);
+    // Get log type from metadata
+    let log_type = metadata_map.get(&filename).cloned();
 
     Ok(LogFileInfo {
         filename,
         path: path.to_string_lossy().to_string(),
         size_bytes: metadata.len(),
         modified: modified_str,
-        event_count,
+        log_type,
     })
 }
 
-/// Estimate the number of events in a JSON log file.
-/// This is a best-effort estimation by counting newlines or array elements.
-fn estimate_event_count(path: &PathBuf) -> Option<usize> {
-    // Try to read the file and count events
-    match fs::read_to_string(path) {
-        Ok(content) => {
-            // Try to parse as JSON array first
-            if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(&content) {
-                if let Some(array) = json_value.as_array() {
-                    return Some(array.len());
-                }
-            }
-
-            // If not an array, count newlines (for NDJSON format)
-            let line_count = content.lines().count();
-            if line_count > 0 {
-                return Some(line_count);
-            }
-
-            None
-        }
-        Err(_) => None,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_estimate_event_count_array() {
-        // Test with JSON array
-        let json_content = r#"[{"event": 1}, {"event": 2}, {"event": 3}]"#;
-        let temp_file = std::env::temp_dir().join("test_array.json");
-        fs::write(&temp_file, json_content).unwrap();
-
-        let count = estimate_event_count(&temp_file);
-        assert_eq!(count, Some(3));
-
-        fs::remove_file(&temp_file).unwrap();
-    }
-
-    #[test]
-    fn test_estimate_event_count_ndjson() {
-        // Test with NDJSON format
-        let ndjson_content = "{\"event\": 1}\n{\"event\": 2}\n{\"event\": 3}";
-        let temp_file = std::env::temp_dir().join("test_ndjson.json");
-        fs::write(&temp_file, ndjson_content).unwrap();
-
-        let count = estimate_event_count(&temp_file);
-        assert_eq!(count, Some(3));
-
-        fs::remove_file(&temp_file).unwrap();
-    }
+/// Get detailed information about a specific log file (without app_handle).
+/// Used by import_log_file which doesn't have access to metadata yet.
+fn get_log_file_info(path: &PathBuf) -> Result<LogFileInfo, SiemError> {
+    get_log_file_info_with_metadata(path, &HashMap::new())
 }

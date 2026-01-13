@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Layout } from "./components/Layout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { RulesPage } from "./pages/RulesPage";
+import { ScanPage } from "./pages/ScanPage";
 import SettingsPage from "./pages/SettingsPage";
 import "./App.css";
 
@@ -16,6 +17,9 @@ function App() {
         </div>
         <div style={{ display: currentView === "rules" ? "block" : "none" }}>
           <RulesPage />
+        </div>
+        <div style={{ display: currentView === "scan" ? "block" : "none" }}>
+          <ScanPage />
         </div>
         <div style={{ display: currentView === "settings" ? "block" : "none" }}>
           <SettingsPage />

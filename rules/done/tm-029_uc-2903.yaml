@@ -1,17 +1,18 @@
-id: ""
-title: "AWS Logging Disabled by Organization Role"
-description: "Detects an Organization Role disabling security logging (CloudTrail, GuardDuty, VPC Flow Logs). This is a common defense evasion tactic before data exfiltration."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: AWS Logging Disabled by Organization Role
+description: Detects an Organization Role disabling security logging (CloudTrail, GuardDuty, VPC Flow Logs). This is a common defense evasion tactic before data exfiltration.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - defense-evasion
   - logging
 detection:
-  severity: "critical"
-  condition: "userIdentity.sessionContext.sessionIssuer.userName = 'OrganizationAccountAccessRole' AND eventName IN ('StopLogging', 'DeleteTrail', 'DeleteDetector', 'DeleteFlowLogs')"
+  severity: critical
+  condition: "eventName IN ('StopLogging', 'DeleteTrail', 'DeleteDetector', 'DeleteFlowLogs')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Security Logging Disabled by Org Role"
+  alert_title: Security Logging Disabled by Org Role

@@ -1,17 +1,18 @@
-id: ""
-title: "Suspicious Process Reading K8s Secrets"
-description: "Detects non-standard processes (shell, curl, cat) reading the Service Account token file (/var/run/secrets/kubernetes.io/serviceaccount/token). Standard apps (java, node, python) are expected, abnormal processes indicate token theft."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: Suspicious Process Reading K8s Secrets
+description: Detects non-standard processes (shell, curl, cat) reading the Service Account token file (/var/run/secrets/kubernetes.io/serviceaccount/token). Standard apps (java, node, python) are expected, abnormal processes indicate token theft.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - k8s
   - credential-theft
   - evasion
 detection:
-  severity: "high"
+  severity: high
   condition: "command CONTAINS 'cat /var/run/secrets'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "K8s Token Read by Suspicious Process"
+  alert_title: K8s Token Read by Suspicious Process

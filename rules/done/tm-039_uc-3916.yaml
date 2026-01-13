@@ -1,17 +1,18 @@
-id: ""
-title: "DynamoDB Stream to Lambda Enabled"
-description: "Detects enabling of DynamoDB Streams. Attackers often attach a malicious Lambda function to the stream to capture and exfiltrate all database updates in real-time."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: DynamoDB Stream to Lambda Enabled
+description: Detects enabling of DynamoDB Streams. Attackers often attach a malicious Lambda function to the stream to capture and exfiltrate all database updates in real-time.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - dynamodb
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName = 'UpdateTable' AND requestParameters.streamSpecification.streamEnabled = 'true'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "DynamoDB Stream Enabled"
+  alert_title: DynamoDB Stream Enabled

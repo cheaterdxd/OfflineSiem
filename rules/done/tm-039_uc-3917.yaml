@@ -1,17 +1,18 @@
-id: ""
-title: "CloudFormation Custom Resource Injection"
-description: "Detects CloudFormation stacks containing Custom Resources (Lambda-backed). Attackers inject malicious custom resources to execute code and exfiltrate data during stack creation."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: CloudFormation Custom Resource Injection
+description: Detects CloudFormation stacks containing Custom Resources (Lambda-backed). Attackers inject malicious custom resources to execute code and exfiltrate data during stack creation.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - defense-evasion
   - cloudformation
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName = 'CreateStack' AND requestParameters.templateBody CONTAINS 'AWS::CloudFormation::CustomResource'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Suspicious Custom Resource in CloudFormation"
+  alert_title: Suspicious Custom Resource in CloudFormation

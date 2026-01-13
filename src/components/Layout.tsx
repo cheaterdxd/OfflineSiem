@@ -10,6 +10,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentView, onNavigat
     const menuItems = [
         { id: "dashboard", label: "Dashboard" },
         { id: "rules", label: "Rules Manager" },
+        { id: "scan", label: "Log Scanner" },
         { id: "settings", label: "Settings" },
     ];
 

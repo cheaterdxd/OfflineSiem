@@ -1,47 +1,66 @@
 # OfflineSiem - Quick Start Script
-# Chạy script này để khởi động ứng dụng ở chế độ development
+# Chay script nay de khoi dong ung dung o che do development
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  OfflineSiem - Development Launcher  " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Kiểm tra Node.js
+# Kiem tra Node.js
 Write-Host "Checking Node.js..." -ForegroundColor Yellow
 if (Get-Command node -ErrorAction SilentlyContinue) {
-    $nodeVersion = node --version
-    Write-Host "✓ Node.js found: $nodeVersion" -ForegroundColor Green
+    try {
+        $nodeVersion = node --version
+        Write-Host "[OK] Node.js found: $nodeVersion" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARN] Node.js found but failed to check version" -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "✗ Node.js not found! Please install Node.js from https://nodejs.org/" -ForegroundColor Red
+    Write-Host "[ERR] Node.js not found! Please install Node.js from https://nodejs.org/" -ForegroundColor Red
     exit 1
 }
 
-# Kiểm tra Rust
+# Kiem tra Rust
 Write-Host "Checking Rust..." -ForegroundColor Yellow
+
+# Try to add Cargo to PATH if not found (common issue after fresh install)
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    $cargoPath = Join-Path $env:USERPROFILE ".cargo\bin"
+    if (Test-Path $cargoPath) {
+        Write-Host "[WARN] Cargo not in PATH, adding temporarily..." -ForegroundColor Yellow
+        $env:Path += ";$cargoPath"
+    }
+}
+
 if (Get-Command cargo -ErrorAction SilentlyContinue) {
-    $rustVersion = cargo --version
-    Write-Host "✓ Rust found: $rustVersion" -ForegroundColor Green
+    try {
+        $rustVersion = cargo --version
+        Write-Host "[OK] Rust found: $rustVersion" -ForegroundColor Green
+    } catch {
+        Write-Host "[WARN] Rust found but failed to check version" -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "✗ Rust not found! Please install Rust from https://rustup.rs/" -ForegroundColor Red
+    Write-Host "[ERR] Rust not found! Please install Rust from https://rustup.rs/" -ForegroundColor Red
+    Write-Host "  Tip: If you just installed Rust, try restarting your terminal." -ForegroundColor Gray
     exit 1
 }
 
-# Kiểm tra node_modules
+# Kiem tra node_modules
 Write-Host ""
 Write-Host "Checking dependencies..." -ForegroundColor Yellow
 if (-not (Test-Path "node_modules")) {
     Write-Host "Installing Node.js dependencies..." -ForegroundColor Yellow
     npm install
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "✗ Failed to install dependencies!" -ForegroundColor Red
+        Write-Host "[ERR] Failed to install dependencies!" -ForegroundColor Red
         exit 1
     }
-    Write-Host "✓ Dependencies installed successfully" -ForegroundColor Green
+    Write-Host "[OK] Dependencies installed successfully" -ForegroundColor Green
 } else {
-    Write-Host "✓ Dependencies already installed" -ForegroundColor Green
+    Write-Host "[OK] Dependencies already installed" -ForegroundColor Green
 }
 
-# Khởi chạy ứng dụng
+# Khoi chay ung dung
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Starting OfflineSiem in development mode..." -ForegroundColor Cyan

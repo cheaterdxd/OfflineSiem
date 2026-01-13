@@ -1,17 +1,18 @@
-id: ""
-title: "RAM Resource Sharing Enabled"
-description: "Detects Resource Access Manager (RAM) sharing activities. Attackers use RAM to share subnets or gateways with external accounts to establish backdoors or exfiltration channels."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: RAM Resource Sharing Enabled
+description: Detects Resource Access Manager (RAM) sharing activities. Attackers use RAM to share subnets or gateways with external accounts to establish backdoors or exfiltration channels.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - lateral-movement
   - ram
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName IN ('EnableSharingWithAwsOrganization', 'CreateResourceShare')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Resource Sharing Enabled via RAM"
+  alert_title: Resource Sharing Enabled via RAM

@@ -1,17 +1,18 @@
-id: ""
-title: "K8s Service Account Anomaly UserAgent"
-description: "Detects access to K8s API Server from a Service Account with abnormal UserAgents (curl, python, wget, kubectl) instead of standard K8s components (kube-proxy, coredns). This may indicate a Pod has been compromised and is communicating with the API Server."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: K8s Service Account Anomaly UserAgent
+description: Detects access to K8s API Server from a Service Account with abnormal UserAgents (curl, python, wget, kubectl) instead of standard K8s components (kube-proxy, coredns). This may indicate a Pod has been compromised and is communicating with the API Server.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - k8s
   - anomaly
   - service-account
 detection:
-  severity: "high"
+  severity: high
   condition: "(userAgent CONTAINS 'system:serviceaccount' OR userAgent CONTAINS 'curl' OR userAgent CONTAINS 'python' OR userAgent CONTAINS 'wget' OR userAgent CONTAINS 'kubectl') AND (userAgent NOT CONTAINS 'kube-controller' AND userAgent NOT CONTAINS 'kube-scheduler' AND userAgent NOT CONTAINS 'kube-proxy' AND userAgent NOT CONTAINS 'coredns')"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Suspicious UserAgent from Service Account"
+  alert_title: Suspicious UserAgent from Service Account

@@ -1,17 +1,18 @@
-id: ""
-title: "Malicious S3 Replication Configured"
-description: "Detects the configuration of an S3 Replication Rule. Attackers can set up automatic replication to send all new data in a bucket to an external bucket they control."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: Malicious S3 Replication Configured
+description: Detects the configuration of an S3 Replication Rule. Attackers can set up automatic replication to send all new data in a bucket to an external bucket they control.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - s3
 detection:
-  severity: "high"
+  severity: high
   condition: "eventName = 'PutBucketReplication'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "S3 Replication Rule Created"
+  alert_title: S3 Replication Rule Created

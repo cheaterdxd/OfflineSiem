@@ -1,17 +1,18 @@
-id: ""
-title: "Snapshot Shared with External Account"
-description: "Detects sharing of EBS or RDS snapshots with external AWS accounts. This is a common method to exfiltrate entire databases or disks without downloading them directly."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: Snapshot Shared with External Account
+description: Detects sharing of EBS or RDS snapshots with external AWS accounts. This is a common method to exfiltrate entire databases or disks without downloading them directly.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - exfiltration
   - snapshot
 detection:
-  severity: "critical"
+  severity: critical
   condition: "eventName IN ('ModifySnapshotAttribute', 'ModifyDBSnapshotAttribute') AND requestParameters.createVolumePermission.add.items.userId IS NOT NULL"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Snapshot Shared Externally"
+  alert_title: Snapshot Shared Externally

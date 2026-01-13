@@ -1,17 +1,18 @@
-id: ""
-title: "Helper IAM User Created by Organization Role"
-description: "Detects the creation of a new IAM User by the OrganizationAccountAccessRole. Attackers create secondary credentials to maintain access and bypass monitoring on the primary role."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: Helper IAM User Created by Organization Role
+description: Detects the creation of a new IAM User by the OrganizationAccountAccessRole. Attackers create secondary credentials to maintain access and bypass monitoring on the primary role.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - aws
   - persistence
   - iam
 detection:
-  severity: "high"
+  severity: high
   condition: "userIdentity.sessionContext.sessionIssuer.userName = 'OrganizationAccountAccessRole' AND eventName = 'CreateUser'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "IAM User Created by Org Role"
+  alert_title: IAM User Created by Org Role

@@ -39,19 +39,32 @@ export const DashboardPage: React.FC = () => {
             setSelectedLogFile(logFileInfo);
             setLogFile(logFileInfo.path);
 
+            // CRITICAL: Use saved log type from file metadata
+            // If not set, this means file was imported before log type feature
+            let fileLogType = logFileInfo.log_type;
+
+            if (!fileLogType) {
+                // File doesn't have log type saved - show error
+                setError(`Log type not set for "${logFileInfo.filename}". Please use the dropdown in the file list to set the format (CloudTrail or FlatJson).`);
+                setLoading(false);
+                return;
+            }
+
+            console.log(`Loading file: ${logFileInfo.filename} with type: ${fileLogType}`);
+
             // Load all events with log type
             const allEvents = await invoke<any[]>("load_log_events", {
                 logPath: logFileInfo.path,
-                logType: logType
+                logType: fileLogType
             });
             setEvents(allEvents);
 
             // Save log context to localStorage for Rule Testing
             localStorage.setItem("currentLogPath", logFileInfo.path);
-            localStorage.setItem("currentLogType", logType);
+            localStorage.setItem("currentLogType", fileLogType);
 
             // Auto-scan with active rules
-            const scanResult = await scanService.scanLogs(logFileInfo.path, logType);
+            const scanResult = await scanService.scanLogs(logFileInfo.path, fileLogType);
             setAlerts(scanResult.alerts);
 
             setLoading(false);
@@ -114,8 +127,11 @@ export const DashboardPage: React.FC = () => {
             setIsRescanning(true);
             setError(null);
 
+            // Use saved log type from selected file if available, otherwise use dropdown
+            const fileLogType = selectedLogFile?.log_type || logType;
+
             // Re-scan with active rules
-            const scanResult = await scanService.scanLogs(logFile, logType);
+            const scanResult = await scanService.scanLogs(logFile, fileLogType);
             setAlerts(scanResult.alerts);
 
             setIsRescanning(false);

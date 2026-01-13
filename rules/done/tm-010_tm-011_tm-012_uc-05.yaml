@@ -1,17 +1,18 @@
-id: ""
-title: "K8s Pod Creation with Root Host Path Mount"
-description: "Detects the creation of a Pod that mounts the host root drectory ('/'). This allows attackers to access arbitrary files on the host node, leading to full node compromise."
-author: "tuanlt26"
-status: "active"
-date: "2026-01-05"
+id: ''
+title: K8s Pod Creation with Root Host Path Mount
+description: Detects the creation of a Pod that mounts the host root drectory ('/'). This allows attackers to access arbitrary files on the host node, leading to full node compromise.
+author: tuanlt26
+status: active
+date: 2026-01-05
 tags:
   - k8s
   - privilege-escalation
   - host-path
 detection:
-  severity: "critical"
+  severity: critical
   condition: "verb = 'create' AND objectRef.resource = 'pods' AND userIdentity.username CONTAINS 'system:serviceaccount' AND requestObject CONTAINS 'hostPath' AND requestObject CONTAINS 'path: /'"
+
   aggregation:
     enabled: false
 output:
-  alert_title: "Pod Created with Root HostPath Mount"
+  alert_title: Pod Created with Root HostPath Mount
