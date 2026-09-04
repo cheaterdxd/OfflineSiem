@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { logService, LogFileInfo, LogType } from "../services/logService";
+import { logService, LogFileInfo } from "../services/logService";
 import { Button } from "./Button";
 import { Tooltip } from "./Tooltip";
 
