@@ -53,7 +53,7 @@
                 "principalId": "AROATTCVRZIH5PZCNCZ4Z:resource-explorer-2",
                 "arn": "arn:aws:sts::247140043279:assumed-role/AWSServiceRoleForResourceExplorer/resource-explorer-2",
                 "accountId": "247140043279",
-                "accessKeyId": "ASIATTCVRZIHWSBIUYQ4",
+                "accessKeyId": "test",
                 "sessionContext": {
                     "sessionIssuer": {
                         "type": "Role",
@@ -93,7 +93,7 @@
                 "principalId": "AROATTCVRZIH5PZCNCZ4Z:resource-explorer-2",
                 "arn": "arn:aws:sts::247140043279:assumed-role/AWSServiceRoleForResourceExplorer/resource-explorer-2",
                 "accountId": "247140043279",
-                "accessKeyId": "ASIATTCVRZIHWSBIUYQ4",
+                "accessKeyId": "test",
                 "sessionContext": {
                     "sessionIssuer": {
                         "type": "Role",
